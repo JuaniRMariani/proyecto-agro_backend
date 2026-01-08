@@ -1,25 +1,49 @@
-import { Injectable } from "@nestjs/common";
-import { IUserRepository } from "./user.repository";
-import { User } from "../user.entity";
-import { CreateUserDto } from "../dto/create-user.dto";
-import { UpdateUserDto } from "../dto/update-user.dto";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { IUserRepository } from './user.repository';
+import { User } from '../user.entity';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class UserTypeOrmRepository implements IUserRepository {
+  constructor(@InjectRepository(User) private typeOrmRepo: Repository<User>) {}
 
-    findAll(): Promise<User[]> {
-        throw new Error("Method not implemented.");
+  async findAll(): Promise<User[]> {
+    return await this.typeOrmRepo.find();
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return await this.typeOrmRepo.findOneBy({ id });
+  }
+
+  async create(user: Partial<CreateUserDto>): Promise<User> {
+    const newUser = await this.typeOrmRepo.create(user);
+    return await this.typeOrmRepo.save(newUser);
+  }
+
+  async update(id: string, user: Partial<UpdateUserDto>): Promise<User> {
+    const existingUser = await this.typeOrmRepo.findOneBy({ id });
+    if (!existingUser) {
+      throw new NotFoundException('Usuario no encontrado');
     }
-    findById(id: string): Promise<User | null> {
-        throw new Error("Method not implemented.");
-    }
-    create(user: Partial<CreateUserDto>): Promise<User> {
-        throw new Error("Method not implemented.");
-    }
-    update(id: string, user: Partial<UpdateUserDto>): Promise<User> {
-        throw new Error("Method not implemented.");
-    }
-    delete(id: string): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
+    this.typeOrmRepo.merge(existingUser, user);
+    return await this.typeOrmRepo.save(existingUser);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.typeOrmRepo.delete(id);
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.typeOrmRepo.findOneBy({ email });
+  }
+  async findByEmailWithPassword(email: string): Promise<User | null> {
+    return await this.typeOrmRepo
+      .createQueryBuilder('user')
+      .where('user.email = :email', { email })
+      .addSelect('user.password')
+      .getOne();
+  }
 }

@@ -1,4 +1,37 @@
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { AuthGuard } from '@nestjs/passport';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { LoginUserDto } from './dto/login-user.dto';
+import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 
 @Controller('auth')
-export class AuthController {}
+export class AuthController {
+  private authService: AuthService;
+
+  constructor(authService: AuthService) {
+    this.authService = authService;
+  }
+
+  @ResponseMessage('Usuario logueado exitosamente')
+  @Post('login')
+  async login(@Body() loginData: LoginUserDto): Promise<AuthResponseDto> {
+    const userLogged = await this.authService.login(loginData);
+    return userLogged;
+  }
+
+  @ResponseMessage('Usuario registrado exitosamente')
+  @Post('register')
+  async register(@Body() userData: CreateUserDto): Promise<AuthResponseDto> {
+    return this.authService.register(userData);
+  }
+
+  @ResponseMessage('Usuario deslogeado exitosamente')
+  @UseGuards(AuthGuard('jwt'))
+  @Post('logout')
+  async logout(@Request() req): Promise<void> {
+    const token = req.headers.authorization?.split(' ')[1];
+    return this.authService.logout(token);
+  }
+}
