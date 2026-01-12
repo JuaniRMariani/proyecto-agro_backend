@@ -19,4 +19,10 @@ export class User {
 
   @CreateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
+
+  @Column({ nullable: true, select: false })
+  resetPasswordToken: string;
+
+  @CreateDateColumn({ type: 'timestamp', nullable: true, select: false })
+  resetPasswordExpires: Date;
 }

@@ -52,6 +52,10 @@ export class UserService {
     userData: Partial<UpdateUserDto>,
   ): Promise<UserResponseDto | null> {
     try {
+      if (userData.password) {
+        const hashedPassword = await bcrypt.hash(userData.password, 10);
+        userData.password = hashedPassword;
+      }
       const updatedUser = await this.userRepository.update(id, userData);
       const mappedUser = userMapperToResponseDto(updatedUser);
       if (!mappedUser) return null;
@@ -75,6 +79,27 @@ export class UserService {
     const user = await this.userRepository.findByEmailWithPassword(email);
     if (!user) throw new Error('Las credenciales ingresadas son incorrectas');
     return user;
+  }
+
+  async saveVerificationCode(
+    id: string,
+    code: string,
+    expiration: Date,
+  ): Promise<void> {
+    return this.userRepository.saveVerificationCode(id, code, expiration);
+  }
+
+  async clearVerificationCode(id: string): Promise<void> {
+    return this.userRepository.clearVerificationCode(id);
+  }
+
+  async findByVerificationCode(code: string): Promise<User | null> {
+    return this.userRepository.findByVerificationCode(code);
+  }
+
+  async changePassword(id: string, newPassword: string): Promise<void> {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    return this.userRepository.changePassword(id, hashedPassword);
   }
 
   private handleDbError(error: any): never {

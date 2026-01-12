@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Código de Verificación</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2d5016 0%, #4a7c2c 100%);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.03) 10px, rgba(255,255,255,.03) 20px);
+            pointer-events: none;
+        }
+        
+        .logo {
+            font-size: 32px;
+            color: #ffffff;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo-icon {
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .header-subtitle {
+            color: #d4e7c5;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 24px;
+            color: #2d5016;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .message {
+            font-size: 16px;
+            color: #555555;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        .code-container {
+            background: linear-gradient(135deg, #f8fdf5 0%, #e8f5e0 100%);
+            border: 2px dashed #4a7c2c;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .code-label {
+            font-size: 14px;
+            color: #2d5016;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .code {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2d5016;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .expiration {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #e67e22;
+            font-weight: 600;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 25px 0;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .inta-badge {
+            display: inline-block;
+            background-color: #2d5016;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .footer-text {
+            font-size: 13px;
+            color: #6c757d;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .contact-info {
+            font-size: 12px;
+            color: #868e96;
+            margin-top: 15px;
+        }
+        
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #4a7c2c, transparent);
+            margin: 25px 0;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .container {
+                border-radius: 0;
+            }
+            
+            .header, .content, .footer {
+                padding: 25px 20px;
+            }
+            
+            .code {
+                font-size: 36px;
+                letter-spacing: 5px;
+            }
+            
+            .greeting {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon">🌾</span>
+                Proyecto Agro
+            </div>
+            <div class="header-subtitle">Tecnología para el Campo</div>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">¡Hola!</div>
+            
+            <div class="message">
+                Recibimos una solicitud para verificar tu cuenta en <strong>Proyecto Agro</strong>. 
+                Para continuar, utiliza el siguiente código de verificación:
+            </div>
+            
+            <div class="code-container">
+                <div class="code-label">Tu Código de Verificación</div>
+                <div class="code">{{CODE}}</div>
+                <div class="expiration">⏱️ Expira en 10 minutos</div>
+            </div>
+            
+            <div class="message">
+                Ingresa este código en la aplicación para completar la verificación de tu cuenta.
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ Seguridad:</strong> Si no solicitaste este código, ignora este correo. 
+                Nunca compartas este código con nadie.
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="message" style="font-size: 14px; color: #6c757d;">
+                Este sistema forma parte de nuestras herramientas digitales para mejorar 
+                la gestión y productividad del sector agropecuario.
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="inta-badge">🌱 En colaboración con INTA</div>
+            
+            <div class="footer-text">
+                <strong>Proyecto Agro</strong><br>
+                Instituto Nacional de Tecnología Agropecuaria
+            </div>
+            
+            <div class="footer-text">
+                Innovación y tecnología al servicio del campo argentino
+            </div>
+            
+            <div class="contact-info">
+                Este es un correo automático, por favor no respondas a este mensaje.<br>
+                Para soporte técnico, contacta a soporte@proyecto-agro.com.ar
+            </div>
+        </div>
+    </div>
+</body>
+</html>

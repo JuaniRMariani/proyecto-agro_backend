@@ -39,6 +39,7 @@ export class UserTypeOrmRepository implements IUserRepository {
   async findByEmail(email: string): Promise<User | null> {
     return await this.typeOrmRepo.findOneBy({ email });
   }
+
   async findByEmailWithPassword(email: string): Promise<User | null> {
     return await this.typeOrmRepo
       .createQueryBuilder('user')
@@ -46,4 +47,32 @@ export class UserTypeOrmRepository implements IUserRepository {
       .addSelect('user.password')
       .getOne();
   }
+
+  async changePassword(id: string, newPassword: string): Promise<void> {
+    await this.typeOrmRepo.update(id, { password: newPassword });
+  }
+
+  async saveVerificationCode(id: string, code: string, expiration: Date): Promise<void> {
+    await this.typeOrmRepo.update(id, {
+      resetPasswordToken: code,
+      resetPasswordExpires: expiration,
+    });
+  }
+
+  async clearVerificationCode(id: string): Promise<void> {
+    await this.typeOrmRepo.update(id, {
+      resetPasswordToken: undefined,
+      resetPasswordExpires: undefined,
+    });
+  }
+
+  async findByVerificationCode(code: string): Promise<User | null> {
+    const currentTime = new Date();
+    return await this.typeOrmRepo
+      .createQueryBuilder('user')
+      .where('user.resetPasswordToken = :code', { code })
+      .andWhere('user.resetPasswordExpires > :currentTime', { currentTime })
+      .getOne();
+  }
+  
 }
