@@ -1,7 +1,9 @@
 import { Cow } from './cow.entity';
 import { BodyConditionScore } from './body-condition-score.entity';
+import { CowOwnershipHistory } from './cow-ownership-history.entity';
 import { CowResponseDto } from './dto/cow-response.dto';
 import { BodyConditionScoreResponseDto } from './dto/body-condition-score-response.dto';
+import { CowOwnershipHistoryResponseDto } from './dto/cow-ownership-history-response.dto';
 
 export function cowMapperToResponseDto(cow: Cow): CowResponseDto | null {
   if (!cow) return null;
@@ -10,6 +12,7 @@ export function cowMapperToResponseDto(cow: Cow): CowResponseDto | null {
     id: cow.id,
     tagNumber: cow.tagNumber,
     weight: Number(cow.weight),
+    userId: cow.userId,
     bodyConditionScores: cow.bodyConditionScores?.map((bcs) =>
       bcsMapperToResponseDto(bcs),
     ).filter((bcs): bcs is BodyConditionScoreResponseDto => bcs !== null),
@@ -30,5 +33,20 @@ export function bcsMapperToResponseDto(
     observation: bcs.observation,
     cowId: bcs.cowId,
     createdAt: bcs.createdAt,
+  });
+}
+
+export function ownershipHistoryMapperToResponseDto(
+  history: CowOwnershipHistory,
+): CowOwnershipHistoryResponseDto | null {
+  if (!history) return null;
+
+  return new CowOwnershipHistoryResponseDto({
+    id: history.id,
+    cowId: history.cowId,
+    previousUserId: history.previousUserId,
+    newUserId: history.newUserId,
+    reason: history.reason,
+    transferredAt: history.transferredAt,
   });
 }

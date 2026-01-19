@@ -4,6 +4,7 @@ export class CowResponseDto {
   id: string;
   tagNumber: string;
   weight: number;
+  userId: string;
   bodyConditionScores?: BodyConditionScoreResponseDto[];
   createdAt: Date;
   updatedAt: Date;

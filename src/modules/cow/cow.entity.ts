@@ -5,8 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { BodyConditionScore } from './body-condition-score.entity';
+import { User } from '../user/user.entity';
+import { CowOwnershipHistory } from './cow-ownership-history.entity';
 
 @Entity('cows')
 export class Cow {
@@ -19,8 +23,18 @@ export class Cow {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   weight: number;
 
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @Column()
+  userId: string;
+
   @OneToMany(() => BodyConditionScore, (bcs) => bcs.cow, { cascade: true })
   bodyConditionScores: BodyConditionScore[];
+
+  @OneToMany(() => CowOwnershipHistory, (history) => history.cow, { cascade: true })
+  ownershipHistory: CowOwnershipHistory[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

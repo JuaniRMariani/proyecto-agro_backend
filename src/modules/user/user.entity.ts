@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
+import { Cow } from '../cow/cow.entity';
 
 @Entity()
 export class User {
@@ -13,6 +14,9 @@ export class User {
 
   @Column({ select: false })
   password: string;
+
+  @OneToMany(() => Cow, (cow) => cow.user)
+  cows: Cow[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
