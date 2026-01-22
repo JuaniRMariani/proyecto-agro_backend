@@ -16,5 +16,5 @@ export class CreateCowDto {
   @IsNumber({}, { message: 'Weight must be a number' })
   @IsPositive({ message: 'Weight must be a positive number' })
   @IsOptional()
-  weight: number;
+  weight?: number;
 }
