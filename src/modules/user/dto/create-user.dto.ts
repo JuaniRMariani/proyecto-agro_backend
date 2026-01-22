@@ -1,4 +1,4 @@
-import {
+﻿import {
   IsEmail,
   IsString,
   MinLength,
@@ -6,12 +6,15 @@ import {
   MaxLength,
   IsNotEmpty,
 } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @IsEmail({}, { message: 'El correo electrónico no es válido' })
-  @IsNotEmpty({ message: 'El correo electrónico es obligatorio' })
+  @ApiProperty({ example: 'user@example.com' })
+  @IsEmail({}, { message: 'El correo electrÃ³nico no es vÃ¡lido' })
+  @IsNotEmpty({ message: 'El correo electrÃ³nico es obligatorio' })
   email: string;
 
+  @ApiPropertyOptional({ example: 'Juan Perez' })
   @IsOptional()
   @IsString({ message: 'El nombre completo debe ser una cadena de texto' })
   @MaxLength(100, {
@@ -19,18 +22,20 @@ export class CreateUserDto {
   })
   fullName: string;
 
-  @IsString({ message: 'La contraseña debe ser una cadena de texto' })
-  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
-  @IsNotEmpty({ message: 'La contraseña es obligatoria' })
+  @ApiProperty({ example: 'StrongPass123' })
+  @IsString({ message: 'La contraseÃ±a debe ser una cadena de texto' })
+  @MinLength(6, { message: 'La contraseÃ±a debe tener al menos 6 caracteres' })
+  @IsNotEmpty({ message: 'La contraseÃ±a es obligatoria' })
   password: string;
 
+  @ApiProperty({ example: 'StrongPass123' })
   @IsString({
-    message: 'La confirmación de la contraseña debe ser una cadena de texto',
+    message: 'La confirmaciÃ³n de la contraseÃ±a debe ser una cadena de texto',
   })
   @MinLength(6, {
     message:
-      'La confirmación de la contraseña debe tener al menos 6 caracteres',
+      'La confirmaciÃ³n de la contraseÃ±a debe tener al menos 6 caracteres',
   })
-  @IsNotEmpty({ message: 'La confirmación de la contraseña es obligatoria' })
+  @IsNotEmpty({ message: 'La confirmaciÃ³n de la contraseÃ±a es obligatoria' })
   passwordConfirmation?: string;
 }

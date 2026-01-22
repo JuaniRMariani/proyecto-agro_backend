@@ -1,8 +1,9 @@
-import { IsNotEmpty, IsString, Length } from 'class-validator';
+﻿import { IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class VerifyCodeDto {
-  @IsNotEmpty({ message: 'El código es requerido' })
-  @IsString({ message: 'El código debe ser una cadena de texto' })
-  @Length(6, 6, { message: 'El código debe tener 6 dígitos' })
+  @ApiProperty({ example: '123456' })
+  @IsString({ message: 'El cÃ³digo debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El cÃ³digo es obligatorio' })
   code: string;
 }

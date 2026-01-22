@@ -15,8 +15,16 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 @Controller('user')
+@ApiTags('user')
+@ApiBearerAuth()
 export class UserController {
   private userService: UserService;
 
@@ -27,6 +35,7 @@ export class UserController {
   @ResponseMessage('Usuarios obtenidos exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Get()
+  @ApiOkResponse({ type: UserResponseDto, isArray: true })
   async getUsers(): Promise<UserResponseDto[]> {
     const userToReturn = await this.userService.getAllUsers();
     return userToReturn;
@@ -35,6 +44,7 @@ export class UserController {
   @ResponseMessage('Usuario obtenido exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Get(':id')
+  @ApiOkResponse({ type: UserResponseDto })
   async getUserById(@Request() req): Promise<UserResponseDto | null> {
     const userToReturn = await this.userService.getUserById(req.user.userId);
     return userToReturn;
@@ -43,6 +53,7 @@ export class UserController {
   @ResponseMessage('Usuario creado exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Post()
+  @ApiCreatedResponse({ type: UserResponseDto })
   async createUser(@Body() newUser: CreateUserDto): Promise<UserResponseDto> {
     const userToReturn = await this.userService.createUser(newUser);
     return userToReturn;
@@ -51,6 +62,7 @@ export class UserController {
   @ResponseMessage('Usuario actualizado exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Put()
+  @ApiOkResponse({ type: UserResponseDto })
   async updateUser(
     @Request() req,
     @Body() updatedUser: UpdateUserDto,
@@ -65,6 +77,7 @@ export class UserController {
   @ResponseMessage('Usuario eliminado exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
+  @ApiOkResponse({ schema: { example: { message: 'Usuario eliminado exitosamente' } } })
   async deleteUser(@Param('id') id: string): Promise<void> {
     return this.userService.deleteUser(id);
   }

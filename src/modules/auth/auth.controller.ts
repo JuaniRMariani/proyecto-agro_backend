@@ -8,8 +8,10 @@ import { ResponseMessage } from 'src/common/decorators/response-message.decorato
 import { SendCodeDto } from './dto/send-code.dto';
 import { VerifyCodeDto } from './dto/verify-code.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('auth')
+@ApiTags('auth')
 export class AuthController {
   private authService: AuthService;
 
@@ -19,6 +21,7 @@ export class AuthController {
 
   @ResponseMessage('Usuario logueado exitosamente')
   @Post('login')
+  @ApiOkResponse({ type: AuthResponseDto })
   async login(@Body() loginData: LoginUserDto): Promise<AuthResponseDto> {
     const userLogged = await this.authService.login(loginData);
     return userLogged;
@@ -26,6 +29,7 @@ export class AuthController {
 
   @ResponseMessage('Usuario registrado exitosamente')
   @Post('register')
+  @ApiCreatedResponse({ type: AuthResponseDto })
   async register(@Body() userData: CreateUserDto): Promise<AuthResponseDto> {
     return this.authService.register(userData);
   }
@@ -33,6 +37,7 @@ export class AuthController {
   @ResponseMessage('Usuario deslogeado exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
+  @ApiOkResponse({ schema: { example: { message: 'Usuario deslogeado exitosamente' } } })
   async logout(@Request() req): Promise<void> {
     const token = req.headers.authorization?.split(' ')[1];
     return this.authService.logout(token);
@@ -40,18 +45,21 @@ export class AuthController {
 
   @ResponseMessage('Token de acceso renovado exitosamente')
   @Post('send-code')
+  @ApiOkResponse({ schema: { example: { message: 'Token de acceso renovado exitosamente' } } })
   async sendCode(@Body() body: SendCodeDto): Promise<void> {
     return this.authService.sendCode(body.email);
   }
 
   @ResponseMessage('Código verificado exitosamente')
   @Post('verify-code')
+  @ApiOkResponse({ schema: { example: { valid: true } } })
   async verifyCode(@Body() body: VerifyCodeDto): Promise<{ valid: boolean }> {
     return this.authService.verifyCode(body.code);
   }
 
   @ResponseMessage('Contraseña restablecida exitosamente')
   @Post('reset-password')
+  @ApiOkResponse({ schema: { example: { message: 'ContraseÃ±a restablecida exitosamente' } } })
   async resetPassword(@Body() body: ResetPasswordDto): Promise<void> {
     return this.authService.resetPassword(body.code, body.password, body.passwordConfirmation);
   }
