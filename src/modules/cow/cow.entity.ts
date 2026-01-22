@@ -30,6 +30,12 @@ export class Cow {
   @Column()
   userId: string;
 
+  @Column({ default: false })
+  deleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  syncAt: Date | null;
+
   @OneToMany(() => BodyConditionScore, (bcs) => bcs.cow, { cascade: true })
   bodyConditionScores: BodyConditionScore[];
 

@@ -4,6 +4,7 @@ import {
   ConflictException,
   NotFoundException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import type { ICowRepository } from './infra/cow.repository';
 import { CreateCowDto } from './dto/create-cow.dto';
@@ -14,6 +15,8 @@ import { CowResponseDto } from './dto/cow-response.dto';
 import { BodyConditionScoreResponseDto } from './dto/body-condition-score-response.dto';
 import { CowOwnershipHistoryResponseDto } from './dto/cow-ownership-history-response.dto';
 import { cowMapperToResponseDto, bcsMapperToResponseDto, ownershipHistoryMapperToResponseDto } from './cow.mapper';
+import { SynchronizeDto } from './dto/synchronize.dto';
+import { CowUpdateData } from './infra/cow.repository';
 
 @Injectable()
 export class CowService {
@@ -162,10 +165,124 @@ export class CowService {
       .filter((record): record is CowOwnershipHistoryResponseDto => record !== null);
   }
 
+  async synchronize(
+    userId: string,
+    payload: SynchronizeDto,
+  ): Promise<{
+    cows: { created: number; updated: number; deleted: number; skipped: number };
+    scores: { created: number; updated: number; deleted: number; skipped: number };
+  }> {
+    const result = {
+      cows: { created: 0, updated: 0, deleted: 0, skipped: 0 },
+      scores: { created: 0, updated: 0, deleted: 0, skipped: 0 },
+    };
+
+    const cows = payload.cows ?? [];
+    const scores = payload.scores ?? [];
+
+    for (const cow of cows) {
+      const existing = await this.cowRepository.findByTagNumberIncludingDeleted(
+        cow.tagNumber,
+      );
+
+      if (cow.deleted) {
+        if (existing && existing.userId === userId) {
+          await this.cowRepository.delete(existing.id, userId);
+          result.cows.deleted += 1;
+        } else {
+          result.cows.skipped += 1;
+        }
+        continue;
+      }
+
+      if (existing) {
+        if (existing.userId !== userId) {
+          throw new ConflictException('A cow with this tag number already exists');
+        }
+
+        const incomingUpdatedAt = this.toEpochMs(cow.updatedAt);
+        if (
+          incomingUpdatedAt !== null &&
+          existing.updatedAt &&
+          incomingUpdatedAt <= existing.updatedAt.getTime()
+        ) {
+          result.cows.skipped += 1;
+          continue;
+        }
+
+        const updateData: CowUpdateData = {
+          deleted: false,
+          syncAt: new Date(),
+        };
+        if (cow.tagNumber) {
+          updateData.tagNumber = cow.tagNumber;
+        }
+        if (cow.weight !== undefined) {
+          updateData.weight = cow.weight;
+        }
+        await this.cowRepository.update(existing.id, userId, updateData);
+        result.cows.updated += 1;
+      } else {
+        await this.cowRepository.create(
+          {
+            tagNumber: cow.tagNumber,
+            weight: cow.weight ?? undefined,
+          },
+          userId,
+        );
+        result.cows.created += 1;
+      }
+    }
+
+    for (const score of scores) {
+      if (score.deleted) {
+        if (score.id) {
+          await this.cowRepository.deleteBcs(score.id, userId);
+          result.scores.deleted += 1;
+        } else {
+          result.scores.skipped += 1;
+        }
+        continue;
+      }
+
+      if (score.score === undefined || score.recordedAt === undefined) {
+        throw new BadRequestException(
+          'Score and recordedAt are required for body condition scores',
+        );
+      }
+
+      const cow = await this.cowRepository.findByTagNumber(score.cowTagNumber);
+      if (!cow || cow.userId !== userId) {
+        result.scores.skipped += 1;
+        continue;
+      }
+
+      const { created } = await this.cowRepository.syncBodyConditionScore(
+        cow.id,
+        userId,
+        score,
+      );
+      if (created) {
+        result.scores.created += 1;
+      } else {
+        result.scores.updated += 1;
+      }
+    }
+
+    return result;
+  }
+
   private handleDbError(error: any): never {
     if (error.code === '23505') {
       throw new ConflictException('A cow with this tag number already exists');
     }
     throw new InternalServerErrorException('Unexpected error occurred');
+  }
+
+  private toEpochMs(value?: number): number | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+    return Number.isFinite(value) ? value : null;
   }
 }

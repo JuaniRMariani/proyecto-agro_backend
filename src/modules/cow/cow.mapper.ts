@@ -13,9 +13,10 @@ export function cowMapperToResponseDto(cow: Cow): CowResponseDto | null {
     tagNumber: cow.tagNumber,
     weight: Number(cow.weight),
     userId: cow.userId,
-    bodyConditionScores: cow.bodyConditionScores?.map((bcs) =>
-      bcsMapperToResponseDto(bcs),
-    ).filter((bcs): bcs is BodyConditionScoreResponseDto => bcs !== null),
+    bodyConditionScores: cow.bodyConditionScores
+      ?.filter((bcs) => !bcs.deleted)
+      .map((bcs) => bcsMapperToResponseDto(bcs))
+      .filter((bcs): bcs is BodyConditionScoreResponseDto => bcs !== null),
     createdAt: cow.createdAt,
     updatedAt: cow.updatedAt,
   });

@@ -8,6 +8,8 @@ import { CowOwnershipHistory } from '../cow-ownership-history.entity';
 import { CreateCowDto } from '../dto/create-cow.dto';
 import { UpdateCowDto } from '../dto/update-cow.dto';
 import { CreateBodyConditionScoreDto } from '../dto/create-body-condition-score.dto';
+import { SyncBodyConditionScoreDto } from '../dto/synchronize.dto';
+import { CowUpdateData } from './cow.repository';
 
 @Injectable()
 export class CowTypeOrmRepository implements ICowRepository {
@@ -23,6 +25,7 @@ export class CowTypeOrmRepository implements ICowRepository {
 
   async findAll(): Promise<Cow[]> {
     return await this.cowRepository.find({
+      where: { deleted: false },
       relations: ['bodyConditionScores'],
       order: { createdAt: 'DESC' },
     });
@@ -30,31 +33,35 @@ export class CowTypeOrmRepository implements ICowRepository {
 
   async findAllByUserId(userId: string): Promise<Cow[]> {
     return await this.cowRepository.find({
-      where: { userId },
+      where: { userId, deleted: false },
       relations: ['bodyConditionScores'],
       order: { createdAt: 'DESC' },
     });
   }
 
   async findById(id: string): Promise<Cow | null> {
-    return await this.cowRepository.findOneBy({ id });
+    return await this.cowRepository.findOneBy({ id, deleted: false });
   }
 
   async findByIdAndUserId(id: string, userId: string): Promise<Cow | null> {
     return await this.cowRepository.findOne({
-      where: { id, userId },
+      where: { id, userId, deleted: false },
     });
   }
 
   async findByIdWithBcs(id: string): Promise<Cow | null> {
     return await this.cowRepository.findOne({
-      where: { id },
+      where: { id, deleted: false },
       relations: ['bodyConditionScores'],
       order: { bodyConditionScores: { recordedAt: 'DESC' } },
     });
   }
 
   async findByTagNumber(tagNumber: string): Promise<Cow | null> {
+    return await this.cowRepository.findOneBy({ tagNumber, deleted: false });
+  }
+
+  async findByTagNumberIncludingDeleted(tagNumber: string): Promise<Cow | null> {
     return await this.cowRepository.findOneBy({ tagNumber });
   }
 
@@ -67,6 +74,8 @@ export class CowTypeOrmRepository implements ICowRepository {
       const newCow = this.cowRepository.create({
         ...cowData,
         userId,
+        deleted: false,
+        syncAt: new Date(),
       });
       const savedCow = await queryRunner.manager.save(newCow);
 
@@ -89,7 +98,7 @@ export class CowTypeOrmRepository implements ICowRepository {
     }
   }
 
-  async update(id: string, userId: string, cowData: Partial<UpdateCowDto>): Promise<Cow> {
+  async update(id: string, userId: string, cowData: CowUpdateData): Promise<Cow> {
     const existingCow = await this.findByIdAndUserId(id, userId);
     if (!existingCow) {
       throw new NotFoundException('Cow not found or you do not have permission');
@@ -103,7 +112,9 @@ export class CowTypeOrmRepository implements ICowRepository {
     if (!cow) {
       throw new NotFoundException('Cow not found or you do not have permission');
     }
-    await this.cowRepository.delete(id);
+    cow.deleted = true;
+    cow.syncAt = new Date();
+    await this.cowRepository.save(cow);
   }
 
   async transferOwnership(
@@ -163,6 +174,50 @@ export class CowTypeOrmRepository implements ICowRepository {
     return await this.bcsRepository.save(bcs);
   }
 
+  async syncBodyConditionScore(
+    cowId: string,
+    userId: string,
+    bcsData: SyncBodyConditionScoreDto,
+  ): Promise<{ bcs: BodyConditionScore; created: boolean }> {
+    const cow = await this.findByIdAndUserId(cowId, userId);
+    if (!cow) {
+      throw new NotFoundException('Cow not found or you do not have permission');
+    }
+
+    if (bcsData.id) {
+      const existing = await this.bcsRepository.findOne({
+        where: { id: bcsData.id },
+        relations: ['cow'],
+      });
+
+      if (existing) {
+        if (existing.cow.userId !== userId) {
+          throw new ForbiddenException('You do not have permission to edit this record');
+        }
+        existing.score = bcsData.score ?? existing.score;
+        existing.recordedAt = bcsData.recordedAt
+          ? new Date(bcsData.recordedAt)
+          : existing.recordedAt;
+        existing.observation = bcsData.observation ?? existing.observation;
+        existing.cowId = cowId;
+        existing.deleted = false;
+        existing.syncAt = new Date();
+        return { bcs: await this.bcsRepository.save(existing), created: false };
+      }
+    }
+
+    const bcs = this.bcsRepository.create({
+      id: bcsData.id,
+      cowId,
+      score: bcsData.score,
+      recordedAt: bcsData.recordedAt ? new Date(bcsData.recordedAt) : new Date(),
+      observation: bcsData.observation,
+      deleted: false,
+      syncAt: new Date(),
+    });
+    return { bcs: await this.bcsRepository.save(bcs), created: true };
+  }
+
   async findBcsHistory(cowId: string, userId: string): Promise<BodyConditionScore[]> {
     const cow = await this.findByIdAndUserId(cowId, userId);
     if (!cow) {
@@ -170,7 +225,7 @@ export class CowTypeOrmRepository implements ICowRepository {
     }
 
     return await this.bcsRepository.find({
-      where: { cowId },
+      where: { cowId, deleted: false },
       order: { recordedAt: 'DESC' },
     });
   }
@@ -189,7 +244,9 @@ export class CowTypeOrmRepository implements ICowRepository {
       throw new ForbiddenException('You do not have permission to delete this record');
     }
 
-    await this.bcsRepository.delete(bcsId);
+    bcs.deleted = true;
+    bcs.syncAt = new Date();
+    await this.bcsRepository.save(bcs);
   }
 
   async findOwnershipHistory(cowId: string): Promise<CowOwnershipHistory[]> {

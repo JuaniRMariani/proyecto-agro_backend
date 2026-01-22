@@ -19,7 +19,6 @@ export class BodyConditionScore {
   @Column({ type: 'timestamp' })
   recordedAt: Date;
 
-  
   @Column({ type: 'text', nullable: true })
   observation: string;
 
@@ -29,6 +28,12 @@ export class BodyConditionScore {
 
   @Column()
   cowId: string;
+
+  @Column({ default: false })
+  deleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  syncAt: Date | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

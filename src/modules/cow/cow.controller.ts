@@ -20,6 +20,7 @@ import { UpdateCowDto } from './dto/update-cow.dto';
 import { CreateBodyConditionScoreDto } from './dto/create-body-condition-score.dto';
 import { TransferCowOwnershipDto } from './dto/transfer-cow-ownership.dto';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
+import { SynchronizeDto } from './dto/synchronize.dto';
 
 @Controller('cows')
 @UseGuards(AuthGuard('jwt'))
@@ -57,6 +58,18 @@ export class CowController {
     @Request() req,
   ): Promise<CowResponseDto> {
     return this.cowService.createCow(createCowDto, req.user.userId);
+  }
+
+  @ResponseMessage('Synchronization completed successfully')
+  @Post('synchronize')
+  async synchronize(
+    @Body() synchronizeDto: SynchronizeDto,
+    @Request() req,
+  ): Promise<{
+    cows: { created: number; updated: number; deleted: number; skipped: number };
+    scores: { created: number; updated: number; deleted: number; skipped: number };
+  }> {
+    return this.cowService.synchronize(req.user.userId, synchronizeDto);
   }
 
   @ResponseMessage('Cow updated successfully')
