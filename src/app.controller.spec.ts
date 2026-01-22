@@ -15,8 +15,13 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
+    it('should return API info', () => {
+      expect(appController.getHello()).toMatchObject({
+        name: 'Proyecto Agro API',
+        status: 'ok',
+        basePath: '/api',
+        docs: '/api/docs',
+      });
     });
   });
 });
