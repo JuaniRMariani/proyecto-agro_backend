@@ -26,6 +26,7 @@ describe('CowService', () => {
       deleteBcs: jest.fn(),
       findOwnershipHistory: jest.fn(),
     };
+    cowRepository.findAllByUserId.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -57,6 +58,7 @@ describe('CowService', () => {
 
     expect(cowRepository.delete).toHaveBeenCalledWith('cow-1', 'user-1');
     expect(result.cows.deleted).toBe(1);
+    expect(result.data).toEqual([]);
   });
 
   it('synchronizes cows: skips older updates', async () => {

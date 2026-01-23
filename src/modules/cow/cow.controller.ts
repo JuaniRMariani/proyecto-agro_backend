@@ -21,6 +21,7 @@ import { CreateBodyConditionScoreDto } from './dto/create-body-condition-score.d
 import { TransferCowOwnershipDto } from './dto/transfer-cow-ownership.dto';
 import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
 import { SynchronizeDto } from './dto/synchronize.dto';
+import { SynchronizeResponseDto } from './dto/synchronize-response.dto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -75,20 +76,38 @@ export class CowController {
   @ResponseMessage('Synchronization completed successfully')
   @Post('synchronize')
   @ApiOkResponse({
+    type: SynchronizeResponseDto,
     schema: {
       example: {
         cows: { created: 1, updated: 0, deleted: 0, skipped: 0 },
         scores: { created: 1, updated: 0, deleted: 0, skipped: 0 },
+        data: [
+          {
+            id: '165ab8ad-b614-4d2e-89a7-366aee70e94a',
+            tagNumber: '530',
+            weight: 900,
+            userId: '3b6efa53-e23f-4bda-adf5-29ae714acac4',
+            bodyConditionScores: [
+              {
+                id: '73583dc2-e179-4931-b495-1f85c1382152',
+                score: 3,
+                recordedAt: '2026-01-22T00:00:00.000Z',
+                observation: 'Observation notes',
+                cowId: '165ab8ad-b614-4d2e-89a7-366aee70e94a',
+                createdAt: '2026-01-22T00:00:00.000Z',
+              },
+            ],
+            createdAt: '2026-01-22T00:00:00.000Z',
+            updatedAt: '2026-01-22T00:00:00.000Z',
+          },
+        ],
       },
     },
   })
   async synchronize(
     @Body() synchronizeDto: SynchronizeDto,
     @Request() req,
-  ): Promise<{
-    cows: { created: number; updated: number; deleted: number; skipped: number };
-    scores: { created: number; updated: number; deleted: number; skipped: number };
-  }> {
+  ): Promise<SynchronizeResponseDto> {
     return this.cowService.synchronize(req.user.userId, synchronizeDto);
   }
 

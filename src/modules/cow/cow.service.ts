@@ -12,6 +12,7 @@ import { UpdateCowDto } from './dto/update-cow.dto';
 import { CreateBodyConditionScoreDto } from './dto/create-body-condition-score.dto';
 import { TransferCowOwnershipDto } from './dto/transfer-cow-ownership.dto';
 import { CowResponseDto } from './dto/cow-response.dto';
+import { SynchronizeResponseDto } from './dto/synchronize-response.dto';
 import { BodyConditionScoreResponseDto } from './dto/body-condition-score-response.dto';
 import { CowOwnershipHistoryResponseDto } from './dto/cow-ownership-history-response.dto';
 import { cowMapperToResponseDto, bcsMapperToResponseDto, ownershipHistoryMapperToResponseDto } from './cow.mapper';
@@ -168,10 +169,7 @@ export class CowService {
   async synchronize(
     userId: string,
     payload: SynchronizeDto,
-  ): Promise<{
-    cows: { created: number; updated: number; deleted: number; skipped: number };
-    scores: { created: number; updated: number; deleted: number; skipped: number };
-  }> {
+  ): Promise<SynchronizeResponseDto> {
     const result = {
       cows: { created: 0, updated: 0, deleted: 0, skipped: 0 },
       scores: { created: 0, updated: 0, deleted: 0, skipped: 0 },
@@ -269,7 +267,12 @@ export class CowService {
       }
     }
 
-    return result;
+    const cowsSnapshot = await this.cowRepository.findAllByUserId(userId);
+    const data = cowsSnapshot
+      .map((cow) => cowMapperToResponseDto(cow))
+      .filter((cow): cow is CowResponseDto => cow !== null);
+
+    return { ...result, data };
   }
 
   private handleDbError(error: any): never {

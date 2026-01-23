@@ -38,6 +38,7 @@ describe('CowController', () => {
     cowService.synchronize.mockResolvedValue({
       cows: { created: 1, updated: 0, deleted: 0, skipped: 0 },
       scores: { created: 0, updated: 0, deleted: 0, skipped: 0 },
+      data: [],
     });
 
     const result = await controller.synchronize(
@@ -50,6 +51,7 @@ describe('CowController', () => {
       scores: [],
     });
     expect(result.cows.created).toBe(1);
+    expect(result.data).toEqual([]);
   });
 
   it('gets cows by user id', async () => {
