@@ -23,7 +23,20 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Backend API for agricultural management system built with [NestJS](https://github.com/nestjs/nest) framework.
+
+### Features
+
+- User authentication and management
+- Cow (cattle) management with tracking
+- Body Condition Score (BCS) tracking
+- Cow ownership transfer history
+- Data synchronization for offline-first mobile apps
+
+### API Documentation
+
+Once the application is running, you can access the interactive Swagger API documentation at:
+- Local: `http://localhost:3000/api/docs`
 
 ## Project setup
 
@@ -96,3 +109,52 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+---
+
+## API Endpoints
+
+### Authentication
+- `POST /auth/login` - User login
+- `POST /auth/register` - User registration
+- `POST /auth/send-code` - Send verification code
+- `POST /auth/verify-code` - Verify code
+- `POST /auth/reset-password` - Reset password
+
+### Users
+- `GET /users` - Get all users
+- `GET /users/:id` - Get user by ID
+- `POST /users` - Create user
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+
+### Cows
+- `GET /cows` - Get all cows for authenticated user
+- `GET /cows/:id` - Get cow by ID
+- `GET /cows/tag/:tagNumber` - Get cow by tag number
+- `POST /cows` - Create new cow
+- `PUT /cows/:id` - Update cow
+- `DELETE /cows/:id` - Delete cow
+- `POST /cows/synchronize` - Synchronize cows data (offline-first)
+- `POST /cows/:id/transfer` - Transfer cow ownership
+- `GET /cows/:id/history` - Get ownership history
+- `POST /cows/:id/bcs` - Add body condition score
+- `GET /cows/:id/bcs` - Get body condition score history
+- `DELETE /cows/bcs/:bcsId` - Delete body condition score
+
+### Cow Data Structure
+
+```json
+{
+  "id": "uuid",
+  "tagNumber": "string",
+  "breed": "string (optional)",
+  "weight": "number",
+  "userId": "uuid",
+  "bodyConditionScores": [],
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+```
+
+**Note**: The `breed` field was added to store the cattle breed/race (e.g., "Holstein", "Angus", "Jersey"). It's optional and supports up to 100 characters.
