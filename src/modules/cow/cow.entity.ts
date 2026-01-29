@@ -20,6 +20,9 @@ export class Cow {
   @Column({ unique: true })
   tagNumber: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  breed?: string;
+
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   weight: number;
 

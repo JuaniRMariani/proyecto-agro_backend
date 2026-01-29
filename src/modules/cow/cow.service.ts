@@ -218,6 +218,9 @@ export class CowService {
         if (cow.weight !== undefined) {
           updateData.weight = cow.weight;
         }
+        if (cow.breed !== undefined) {
+          updateData.breed = cow.breed;
+        }
         await this.cowRepository.update(existing.id, userId, updateData);
         result.cows.updated += 1;
       } else {
@@ -225,6 +228,7 @@ export class CowService {
           {
             tagNumber: cow.tagNumber,
             weight: cow.weight ?? undefined,
+            breed: cow.breed ?? undefined,
           },
           userId,
         );

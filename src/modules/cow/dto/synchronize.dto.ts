@@ -17,6 +17,11 @@ export class SyncCowDto {
   @IsNotEmpty({ message: 'Tag number is required' })
   tagNumber: string;
 
+  @ApiPropertyOptional({ example: 'Holstein' })
+  @IsOptional()
+  @IsString({ message: 'Breed must be a string' })
+  breed?: string;
+
   @ApiPropertyOptional({ example: 900 })
   @IsOptional()
   @IsNumber({}, { message: 'Weight must be a number' })

@@ -8,6 +8,9 @@ export class CowResponseDto {
   @ApiProperty({ example: '530' })
   tagNumber: string;
 
+  @ApiPropertyOptional({ example: 'Holstein' })
+  breed?: string;
+
   @ApiProperty({ example: 900 })
   weight: number;
 

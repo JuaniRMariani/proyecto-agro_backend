@@ -11,6 +11,7 @@ export function cowMapperToResponseDto(cow: Cow): CowResponseDto | null {
   return new CowResponseDto({
     id: cow.id,
     tagNumber: cow.tagNumber,
+    breed: cow.breed,
     weight: Number(cow.weight),
     userId: cow.userId,
     bodyConditionScores: cow.bodyConditionScores
