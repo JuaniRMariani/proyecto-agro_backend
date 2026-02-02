@@ -8,7 +8,9 @@ import { CowService } from './cow.service';
 import { CowTypeOrmRepository } from './infra/cow.typeorm.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Cow, BodyConditionScore, CowOwnershipHistory])],
+  imports: [
+    TypeOrmModule.forFeature([Cow, BodyConditionScore, CowOwnershipHistory]),
+  ],
   controllers: [CowController],
   providers: [
     CowService,

@@ -35,6 +35,8 @@ export function bcsMapperToResponseDto(
     observation: bcs.observation,
     cowId: bcs.cowId,
     createdAt: bcs.createdAt,
+    imageUrl: bcs.imageUrl,
+    imagePublicId: bcs.imagePublicId,
   });
 }
 

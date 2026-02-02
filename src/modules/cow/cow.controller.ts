@@ -124,7 +124,9 @@ export class CowController {
 
   @ResponseMessage('Cow deleted successfully')
   @Delete(':id')
-  @ApiOkResponse({ schema: { example: { message: 'Cow deleted successfully' } } })
+  @ApiOkResponse({
+    schema: { example: { message: 'Cow deleted successfully' } },
+  })
   async deleteCow(
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req,
@@ -176,7 +178,11 @@ export class CowController {
 
   @ResponseMessage('Body condition score deleted successfully')
   @Delete('bcs/:bcsId')
-  @ApiOkResponse({ schema: { example: { message: 'Body condition score deleted successfully' } } })
+  @ApiOkResponse({
+    schema: {
+      example: { message: 'Body condition score deleted successfully' },
+    },
+  })
   async deleteBcs(
     @Param('bcsId', ParseUUIDPipe) bcsId: string,
     @Request() req,

@@ -15,7 +15,11 @@ import { CowResponseDto } from './dto/cow-response.dto';
 import { SynchronizeResponseDto } from './dto/synchronize-response.dto';
 import { BodyConditionScoreResponseDto } from './dto/body-condition-score-response.dto';
 import { CowOwnershipHistoryResponseDto } from './dto/cow-ownership-history-response.dto';
-import { cowMapperToResponseDto, bcsMapperToResponseDto, ownershipHistoryMapperToResponseDto } from './cow.mapper';
+import {
+  cowMapperToResponseDto,
+  bcsMapperToResponseDto,
+  ownershipHistoryMapperToResponseDto,
+} from './cow.mapper';
 import { SynchronizeDto } from './dto/synchronize.dto';
 import { CowUpdateData } from './infra/cow.repository';
 
@@ -46,23 +50,33 @@ export class CowService {
       throw new NotFoundException('Cow not found');
     }
     if (cow.userId !== userId) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
     return cowMapperToResponseDto(cow);
   }
 
-  async getCowByTagNumber(tagNumber: string, userId: string): Promise<CowResponseDto | null> {
+  async getCowByTagNumber(
+    tagNumber: string,
+    userId: string,
+  ): Promise<CowResponseDto | null> {
     const cow = await this.cowRepository.findByTagNumber(tagNumber);
     if (!cow) {
       throw new NotFoundException('Cow not found');
     }
     if (cow.userId !== userId) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
     return cowMapperToResponseDto(cow);
   }
 
-  async createCow(createCowDto: CreateCowDto, userId: string): Promise<CowResponseDto> {
+  async createCow(
+    createCowDto: CreateCowDto,
+    userId: string,
+  ): Promise<CowResponseDto> {
     const existingCow = await this.cowRepository.findByTagNumber(
       createCowDto.tagNumber,
     );
@@ -92,12 +106,18 @@ export class CowService {
         updateCowDto.tagNumber,
       );
       if (existingCow && existingCow.id !== id) {
-        throw new ConflictException('A cow with this tag number already exists');
+        throw new ConflictException(
+          'A cow with this tag number already exists',
+        );
       }
     }
 
     try {
-      const updatedCow = await this.cowRepository.update(id, userId, updateCowDto);
+      const updatedCow = await this.cowRepository.update(
+        id,
+        userId,
+        updateCowDto,
+      );
       return cowMapperToResponseDto(updatedCow);
     } catch (error) {
       this.handleDbError(error);
@@ -135,15 +155,24 @@ export class CowService {
     userId: string,
     bcsDto: CreateBodyConditionScoreDto,
   ): Promise<BodyConditionScoreResponseDto> {
-    const bcs = await this.cowRepository.addBodyConditionScore(cowId, userId, bcsDto);
+    const bcs = await this.cowRepository.addBodyConditionScore(
+      cowId,
+      userId,
+      bcsDto,
+    );
     const mappedBcs = bcsMapperToResponseDto(bcs);
     if (!mappedBcs) {
-      throw new InternalServerErrorException('Error mapping body condition score');
+      throw new InternalServerErrorException(
+        'Error mapping body condition score',
+      );
     }
     return mappedBcs;
   }
 
-  async getBcsHistory(cowId: string, userId: string): Promise<BodyConditionScoreResponseDto[]> {
+  async getBcsHistory(
+    cowId: string,
+    userId: string,
+  ): Promise<BodyConditionScoreResponseDto[]> {
     const bcsHistory = await this.cowRepository.findBcsHistory(cowId, userId);
     return bcsHistory
       .map((bcs) => bcsMapperToResponseDto(bcs))
@@ -154,16 +183,23 @@ export class CowService {
     return this.cowRepository.deleteBcs(bcsId, userId);
   }
 
-  async getOwnershipHistory(cowId: string, userId: string): Promise<CowOwnershipHistoryResponseDto[]> {
+  async getOwnershipHistory(
+    cowId: string,
+    userId: string,
+  ): Promise<CowOwnershipHistoryResponseDto[]> {
     const cow = await this.cowRepository.findByIdAndUserId(cowId, userId);
     if (!cow) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
 
     const history = await this.cowRepository.findOwnershipHistory(cowId);
     return history
       .map((record) => ownershipHistoryMapperToResponseDto(record))
-      .filter((record): record is CowOwnershipHistoryResponseDto => record !== null);
+      .filter(
+        (record): record is CowOwnershipHistoryResponseDto => record !== null,
+      );
   }
 
   async synchronize(
@@ -195,7 +231,9 @@ export class CowService {
 
       if (existing) {
         if (existing.userId !== userId) {
-          throw new ConflictException('A cow with this tag number already exists');
+          throw new ConflictException(
+            'A cow with this tag number already exists',
+          );
         }
 
         const incomingUpdatedAt = this.toEpochMs(cow.updatedAt);

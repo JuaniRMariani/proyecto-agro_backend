@@ -29,14 +29,20 @@ describe('AuthController', () => {
   });
 
   it('logs in user', async () => {
-    authService.login.mockResolvedValue({ accessToken: 'token', user: {} } as any);
+    authService.login.mockResolvedValue({
+      accessToken: 'token',
+      user: {},
+    } as any);
     await expect(
       controller.login({ email: 't@example.com', password: 'pass' }),
     ).resolves.toEqual({ accessToken: 'token', user: {} });
   });
 
   it('registers user', async () => {
-    authService.register.mockResolvedValue({ accessToken: 'token', user: {} } as any);
+    authService.register.mockResolvedValue({
+      accessToken: 'token',
+      user: {},
+    } as any);
     await expect(
       controller.register({
         fullName: 'Test',
@@ -48,7 +54,9 @@ describe('AuthController', () => {
   });
 
   it('logs out user', async () => {
-    await controller.logout({ headers: { authorization: 'Bearer token' } } as any);
+    await controller.logout({
+      headers: { authorization: 'Bearer token' },
+    } as any);
     expect(authService.logout).toHaveBeenCalledWith('token');
   });
 
@@ -70,6 +78,10 @@ describe('AuthController', () => {
       password: 'pass',
       passwordConfirmation: 'pass',
     } as any);
-    expect(authService.resetPassword).toHaveBeenCalledWith('123456', 'pass', 'pass');
+    expect(authService.resetPassword).toHaveBeenCalledWith(
+      '123456',
+      'pass',
+      'pass',
+    );
   });
 });

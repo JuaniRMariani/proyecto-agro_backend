@@ -52,7 +52,11 @@ export class UserTypeOrmRepository implements IUserRepository {
     await this.typeOrmRepo.update(id, { password: newPassword });
   }
 
-  async saveVerificationCode(id: string, code: string, expiration: Date): Promise<void> {
+  async saveVerificationCode(
+    id: string,
+    code: string,
+    expiration: Date,
+  ): Promise<void> {
     await this.typeOrmRepo.update(id, {
       resetPasswordToken: code,
       resetPasswordExpires: expiration,
@@ -74,5 +78,4 @@ export class UserTypeOrmRepository implements IUserRepository {
       .andWhere('user.resetPasswordExpires > :currentTime', { currentTime })
       .getOne();
   }
-  
 }

@@ -21,7 +21,14 @@ export class EmailService {
     });
 
     // Cargar el template HTML con ruta relativa desde src
-    const templatePath = path.join(process.cwd(), 'src', 'modules', 'auth', 'emailer', 'verification-code.template.html');
+    const templatePath = path.join(
+      process.cwd(),
+      'src',
+      'modules',
+      'auth',
+      'emailer',
+      'verification-code.template.html',
+    );
     this.htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
   }
 

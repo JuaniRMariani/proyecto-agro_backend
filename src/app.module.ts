@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './modules/user/user.module';
 import { CowModule } from './modules/cow/cow.module';
+import { ImageModule } from './modules/image/image.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CowModule } from './modules/cow/cow.module';
     UserModule,
     AuthModule,
     CowModule,
+    ImageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

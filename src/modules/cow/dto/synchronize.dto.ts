@@ -93,6 +93,22 @@ export class SyncBodyConditionScoreDto {
   @IsOptional()
   @IsBoolean({ message: 'Deleted must be a boolean' })
   deleted?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'https://res.cloudinary.com/.../image/upload/...jpg',
+    description: 'URL of the image in Cloudinary',
+  })
+  @IsOptional()
+  @IsString({ message: 'ImageUrl must be a string' })
+  imageUrl?: string | null;
+
+  @ApiPropertyOptional({
+    example: 'analysis_73583dc2-e179-4931-b495-1f85c1382152',
+    description: 'Public ID of the image in Cloudinary',
+  })
+  @IsOptional()
+  @IsString({ message: 'ImagePublicId must be a string' })
+  imagePublicId?: string | null;
 }
 
 export class SynchronizeDto {

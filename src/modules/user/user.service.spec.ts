@@ -1,4 +1,7 @@
-import { ConflictException, InternalServerErrorException } from '@nestjs/common';
+import {
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 import { UserService } from './user.service';
@@ -127,7 +130,10 @@ describe('UserService', () => {
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
     await service.changePassword('user-1', 'newpass');
     expect(bcrypt.hash).toHaveBeenCalledWith('newpass', 10);
-    expect(userRepository.changePassword).toHaveBeenCalledWith('user-1', 'hashed');
+    expect(userRepository.changePassword).toHaveBeenCalledWith(
+      'user-1',
+      'hashed',
+    );
   });
 
   it('returns mapped users from getAllUsers', async () => {

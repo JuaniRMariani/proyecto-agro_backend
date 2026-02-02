@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserResponseDto } from '../user/dto/user-response.dto';
@@ -29,7 +35,9 @@ export class AuthService {
     const accessToken = await this.getAccessToken(user);
     const mappedAuthResponse = authMapperToResponseDto(user, accessToken);
     if (!mappedAuthResponse) {
-      throw new ConflictException('Error al mapear la respuesta de autenticación');
+      throw new ConflictException(
+        'Error al mapear la respuesta de autenticación',
+      );
     }
     return mappedAuthResponse;
   }
@@ -71,7 +79,11 @@ export class AuthService {
     return { valid: true };
   }
 
-  async resetPassword(code: string, newPassword: string, passwordConfirmation: string): Promise<void> {
+  async resetPassword(
+    code: string,
+    newPassword: string,
+    passwordConfirmation: string,
+  ): Promise<void> {
     if (newPassword !== passwordConfirmation) {
       throw new BadRequestException('Las contraseñas no coinciden');
     }
@@ -110,7 +122,11 @@ export class AuthService {
 
   private async generateVerificationCode(userId: string): Promise<string> {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    this.userService.saveVerificationCode(userId, code, new Date(Date.now() + 10 * 60 * 1000)); // Código válido por 10 minutos
+    this.userService.saveVerificationCode(
+      userId,
+      code,
+      new Date(Date.now() + 10 * 60 * 1000),
+    ); // Código válido por 10 minutos
     return code;
   }
 }

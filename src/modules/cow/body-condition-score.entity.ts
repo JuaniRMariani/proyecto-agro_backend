@@ -22,7 +22,9 @@ export class BodyConditionScore {
   @Column({ type: 'text', nullable: true })
   observation: string;
 
-  @ManyToOne(() => Cow, (cow) => cow.bodyConditionScores, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Cow, (cow) => cow.bodyConditionScores, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'cowId' })
   cow: Cow;
 
@@ -34,6 +36,12 @@ export class BodyConditionScore {
 
   @Column({ type: 'timestamp', nullable: true })
   syncAt: Date | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  imageUrl: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  imagePublicId: string | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

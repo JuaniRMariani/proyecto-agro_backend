@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ICowRepository } from './cow.repository';
@@ -6,7 +10,6 @@ import { Cow } from '../cow.entity';
 import { BodyConditionScore } from '../body-condition-score.entity';
 import { CowOwnershipHistory } from '../cow-ownership-history.entity';
 import { CreateCowDto } from '../dto/create-cow.dto';
-import { UpdateCowDto } from '../dto/update-cow.dto';
 import { CreateBodyConditionScoreDto } from '../dto/create-body-condition-score.dto';
 import { SyncBodyConditionScoreDto } from '../dto/synchronize.dto';
 import { CowUpdateData } from './cow.repository';
@@ -61,7 +64,9 @@ export class CowTypeOrmRepository implements ICowRepository {
     return await this.cowRepository.findOneBy({ tagNumber, deleted: false });
   }
 
-  async findByTagNumberIncludingDeleted(tagNumber: string): Promise<Cow | null> {
+  async findByTagNumberIncludingDeleted(
+    tagNumber: string,
+  ): Promise<Cow | null> {
     return await this.cowRepository.findOneBy({ tagNumber });
   }
 
@@ -98,10 +103,16 @@ export class CowTypeOrmRepository implements ICowRepository {
     }
   }
 
-  async update(id: string, userId: string, cowData: CowUpdateData): Promise<Cow> {
+  async update(
+    id: string,
+    userId: string,
+    cowData: CowUpdateData,
+  ): Promise<Cow> {
     const existingCow = await this.findByIdAndUserId(id, userId);
     if (!existingCow) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
     this.cowRepository.merge(existingCow, cowData);
     return await this.cowRepository.save(existingCow);
@@ -110,7 +121,9 @@ export class CowTypeOrmRepository implements ICowRepository {
   async delete(id: string, userId: string): Promise<void> {
     const cow = await this.findByIdAndUserId(id, userId);
     if (!cow) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
     cow.deleted = true;
     cow.syncAt = new Date();
@@ -130,7 +143,9 @@ export class CowTypeOrmRepository implements ICowRepository {
     try {
       const cow = await this.findByIdAndUserId(cowId, currentUserId);
       if (!cow) {
-        throw new NotFoundException('Cow not found or you do not have permission');
+        throw new NotFoundException(
+          'Cow not found or you do not have permission',
+        );
       }
 
       // Update cow ownership
@@ -163,7 +178,9 @@ export class CowTypeOrmRepository implements ICowRepository {
   ): Promise<BodyConditionScore> {
     const cow = await this.findByIdAndUserId(cowId, userId);
     if (!cow) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
 
     const bcs = this.bcsRepository.create({
@@ -181,7 +198,9 @@ export class CowTypeOrmRepository implements ICowRepository {
   ): Promise<{ bcs: BodyConditionScore; created: boolean }> {
     const cow = await this.findByIdAndUserId(cowId, userId);
     if (!cow) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
 
     if (bcsData.id) {
@@ -192,7 +211,9 @@ export class CowTypeOrmRepository implements ICowRepository {
 
       if (existing) {
         if (existing.cow.userId !== userId) {
-          throw new ForbiddenException('You do not have permission to edit this record');
+          throw new ForbiddenException(
+            'You do not have permission to edit this record',
+          );
         }
         existing.score = bcsData.score ?? existing.score;
         existing.recordedAt = bcsData.recordedAt
@@ -202,6 +223,13 @@ export class CowTypeOrmRepository implements ICowRepository {
         existing.cowId = cowId;
         existing.deleted = false;
         existing.syncAt = new Date();
+        // Only update imageUrl/imagePublicId if provided (not undefined)
+        if (bcsData.imageUrl !== undefined) {
+          existing.imageUrl = bcsData.imageUrl;
+        }
+        if (bcsData.imagePublicId !== undefined) {
+          existing.imagePublicId = bcsData.imagePublicId;
+        }
         return { bcs: await this.bcsRepository.save(existing), created: false };
       }
     }
@@ -210,18 +238,27 @@ export class CowTypeOrmRepository implements ICowRepository {
       id: bcsData.id,
       cowId,
       score: bcsData.score,
-      recordedAt: bcsData.recordedAt ? new Date(bcsData.recordedAt) : new Date(),
+      recordedAt: bcsData.recordedAt
+        ? new Date(bcsData.recordedAt)
+        : new Date(),
       observation: bcsData.observation,
       deleted: false,
       syncAt: new Date(),
+      imageUrl: bcsData.imageUrl ?? null,
+      imagePublicId: bcsData.imagePublicId ?? null,
     });
     return { bcs: await this.bcsRepository.save(bcs), created: true };
   }
 
-  async findBcsHistory(cowId: string, userId: string): Promise<BodyConditionScore[]> {
+  async findBcsHistory(
+    cowId: string,
+    userId: string,
+  ): Promise<BodyConditionScore[]> {
     const cow = await this.findByIdAndUserId(cowId, userId);
     if (!cow) {
-      throw new NotFoundException('Cow not found or you do not have permission');
+      throw new NotFoundException(
+        'Cow not found or you do not have permission',
+      );
     }
 
     return await this.bcsRepository.find({
@@ -241,7 +278,9 @@ export class CowTypeOrmRepository implements ICowRepository {
     }
 
     if (bcs.cow.userId !== userId) {
-      throw new ForbiddenException('You do not have permission to delete this record');
+      throw new ForbiddenException(
+        'You do not have permission to delete this record',
+      );
     }
 
     bcs.deleted = true;

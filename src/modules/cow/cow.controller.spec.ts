@@ -41,10 +41,9 @@ describe('CowController', () => {
       data: [],
     });
 
-    const result = await controller.synchronize(
-      { cows: [], scores: [] },
-      { user: { userId: 'user-1' } } as any,
-    );
+    const result = await controller.synchronize({ cows: [], scores: [] }, {
+      user: { userId: 'user-1' },
+    } as any);
 
     expect(cowService.synchronize).toHaveBeenCalledWith('user-1', {
       cows: [],
@@ -59,9 +58,9 @@ describe('CowController', () => {
       { id: 'cow-1', tagNumber: '123' },
     ] as any);
 
-    await expect(controller.getMyCows({ user: { userId: 'user-1' } } as any)).resolves.toEqual(
-      [{ id: 'cow-1', tagNumber: '123' }],
-    );
+    await expect(
+      controller.getMyCows({ user: { userId: 'user-1' } } as any),
+    ).resolves.toEqual([{ id: 'cow-1', tagNumber: '123' }]);
   });
 
   it('creates cow', async () => {
@@ -71,9 +70,12 @@ describe('CowController', () => {
     } as any);
 
     await expect(
-      controller.createCow({ tagNumber: '123', weight: 100 } as any, {
-        user: { userId: 'user-1' },
-      } as any),
+      controller.createCow(
+        { tagNumber: '123', weight: 100 } as any,
+        {
+          user: { userId: 'user-1' },
+        } as any,
+      ),
     ).resolves.toEqual({ id: 'cow-1', tagNumber: '123' });
   });
 });

@@ -118,27 +118,38 @@ describe('AuthService', () => {
 
   it('throws when sending code to unknown user', async () => {
     userService.getUserByEmail.mockResolvedValue(null as any);
-    await expect(service.sendCode('missing@example.com')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.sendCode('missing@example.com'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('verifies code', async () => {
-    userService.findByVerificationCode.mockResolvedValue({ id: 'user-1' } as any);
-    await expect(service.verifyCode('123456')).resolves.toEqual({ valid: true });
+    userService.findByVerificationCode.mockResolvedValue({
+      id: 'user-1',
+    } as any);
+    await expect(service.verifyCode('123456')).resolves.toEqual({
+      valid: true,
+    });
   });
 
   it('throws when verify code is invalid', async () => {
     userService.findByVerificationCode.mockResolvedValue(null);
-    await expect(service.verifyCode('bad')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.verifyCode('bad')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('resets password when code valid', async () => {
-    userService.findByVerificationCode.mockResolvedValue({ id: 'user-1' } as any);
+    userService.findByVerificationCode.mockResolvedValue({
+      id: 'user-1',
+    } as any);
 
     await service.resetPassword('123456', 'newpass', 'newpass');
 
-    expect(userService.changePassword).toHaveBeenCalledWith('user-1', 'newpass');
+    expect(userService.changePassword).toHaveBeenCalledWith(
+      'user-1',
+      'newpass',
+    );
     expect(userService.clearVerificationCode).toHaveBeenCalledWith('user-1');
   });
 
@@ -149,6 +160,8 @@ describe('AuthService', () => {
   });
 
   it('throws when logout without token', async () => {
-    await expect(service.logout(undefined as any)).rejects.toThrow('Token no proporcionado');
+    await expect(service.logout(undefined as any)).rejects.toThrow(
+      'Token no proporcionado',
+    );
   });
 });

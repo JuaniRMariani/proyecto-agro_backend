@@ -77,7 +77,9 @@ export class UserController {
   @ResponseMessage('Usuario eliminado exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  @ApiOkResponse({ schema: { example: { message: 'Usuario eliminado exitosamente' } } })
+  @ApiOkResponse({
+    schema: { example: { message: 'Usuario eliminado exitosamente' } },
+  })
   async deleteUser(@Param('id') id: string): Promise<void> {
     return this.userService.deleteUser(id);
   }

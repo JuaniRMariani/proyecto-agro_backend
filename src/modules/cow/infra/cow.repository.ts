@@ -22,8 +22,17 @@ export interface ICowRepository {
   create(cow: CreateCowDto, userId: string): Promise<Cow>;
   update(id: string, userId: string, cow: CowUpdateData): Promise<Cow>;
   delete(id: string, userId: string): Promise<void>;
-  transferOwnership(cowId: string, currentUserId: string, newUserId: string, reason?: string): Promise<Cow>;
-  addBodyConditionScore(cowId: string, userId: string, bcs: CreateBodyConditionScoreDto): Promise<BodyConditionScore>;
+  transferOwnership(
+    cowId: string,
+    currentUserId: string,
+    newUserId: string,
+    reason?: string,
+  ): Promise<Cow>;
+  addBodyConditionScore(
+    cowId: string,
+    userId: string,
+    bcs: CreateBodyConditionScoreDto,
+  ): Promise<BodyConditionScore>;
   syncBodyConditionScore(
     cowId: string,
     userId: string,

@@ -42,7 +42,9 @@ export class Cow {
   @OneToMany(() => BodyConditionScore, (bcs) => bcs.cow, { cascade: true })
   bodyConditionScores: BodyConditionScore[];
 
-  @OneToMany(() => CowOwnershipHistory, (history) => history.cow, { cascade: true })
+  @OneToMany(() => CowOwnershipHistory, (history) => history.cow, {
+    cascade: true,
+  })
   ownershipHistory: CowOwnershipHistory[];
 
   @CreateDateColumn({ type: 'timestamp' })

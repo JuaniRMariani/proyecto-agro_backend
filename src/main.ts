@@ -31,7 +31,9 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   const config = new DocumentBuilder()
     .setTitle('Proyecto Agro API')
-    .setDescription('API endpoints for user auth, cow management, and synchronization.')
+    .setDescription(
+      'API endpoints for user auth, cow management, and synchronization.',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

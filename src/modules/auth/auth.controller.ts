@@ -37,7 +37,9 @@ export class AuthController {
   @ResponseMessage('Usuario deslogeado exitosamente')
   @UseGuards(AuthGuard('jwt'))
   @Post('logout')
-  @ApiOkResponse({ schema: { example: { message: 'Usuario deslogeado exitosamente' } } })
+  @ApiOkResponse({
+    schema: { example: { message: 'Usuario deslogeado exitosamente' } },
+  })
   async logout(@Request() req): Promise<void> {
     const token = req.headers.authorization?.split(' ')[1];
     return this.authService.logout(token);
@@ -45,7 +47,9 @@ export class AuthController {
 
   @ResponseMessage('Token de acceso renovado exitosamente')
   @Post('send-code')
-  @ApiOkResponse({ schema: { example: { message: 'Token de acceso renovado exitosamente' } } })
+  @ApiOkResponse({
+    schema: { example: { message: 'Token de acceso renovado exitosamente' } },
+  })
   async sendCode(@Body() body: SendCodeDto): Promise<void> {
     return this.authService.sendCode(body.email);
   }
@@ -59,8 +63,14 @@ export class AuthController {
 
   @ResponseMessage('Contraseña restablecida exitosamente')
   @Post('reset-password')
-  @ApiOkResponse({ schema: { example: { message: 'ContraseÃ±a restablecida exitosamente' } } })
+  @ApiOkResponse({
+    schema: { example: { message: 'ContraseÃ±a restablecida exitosamente' } },
+  })
   async resetPassword(@Body() body: ResetPasswordDto): Promise<void> {
-    return this.authService.resetPassword(body.code, body.password, body.passwordConfirmation);
+    return this.authService.resetPassword(
+      body.code,
+      body.password,
+      body.passwordConfirmation,
+    );
   }
 }
