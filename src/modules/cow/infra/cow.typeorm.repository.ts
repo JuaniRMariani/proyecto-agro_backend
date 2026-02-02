@@ -203,11 +203,22 @@ export class CowTypeOrmRepository implements ICowRepository {
       );
     }
 
+    // Try to find existing by id or clientId
+    let existing: BodyConditionScore | null = null;
+    
     if (bcsData.id) {
-      const existing = await this.bcsRepository.findOne({
+      existing = await this.bcsRepository.findOne({
         where: { id: bcsData.id },
         relations: ['cow'],
       });
+    } else if (bcsData.clientId) {
+      existing = await this.bcsRepository.findOne({
+        where: { clientId: bcsData.clientId },
+        relations: ['cow'],
+      });
+    }
+
+    if (existing) {
 
       if (existing) {
         if (existing.cow.userId !== userId) {
@@ -246,6 +257,7 @@ export class CowTypeOrmRepository implements ICowRepository {
       syncAt: new Date(),
       imageUrl: bcsData.imageUrl ?? null,
       imagePublicId: bcsData.imagePublicId ?? null,
+      clientId: bcsData.clientId ?? null,
     });
     return { bcs: await this.bcsRepository.save(bcs), created: true };
   }

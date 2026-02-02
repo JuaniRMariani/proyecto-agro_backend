@@ -4,6 +4,9 @@ export class BodyConditionScoreResponseDto {
   @ApiProperty({ example: '73583dc2-e179-4931-b495-1f85c1382152' })
   id: string;
 
+  @ApiPropertyOptional({ example: 'client-uuid-123' })
+  clientId: string | null;
+
   @ApiProperty({ example: 3 })
   score: number;
 

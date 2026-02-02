@@ -45,6 +45,7 @@ describe('ImageController', () => {
 
     const signatureRequest: SignatureRequestDto = {
       scoreId: 'score-456',
+      clientId: undefined,
     };
 
     const mockSignatureResponse: SignatureResponseDto = {
@@ -71,6 +72,7 @@ describe('ImageController', () => {
       expect(mockImageService.generateUploadSignature).toHaveBeenCalledWith(
         mockRequest.user.userId,
         signatureRequest.scoreId,
+        signatureRequest.clientId,
       );
     });
 
@@ -85,6 +87,7 @@ describe('ImageController', () => {
       expect(mockImageService.generateUploadSignature).toHaveBeenCalledWith(
         'user-123',
         'score-456',
+        undefined,
       );
     });
   });

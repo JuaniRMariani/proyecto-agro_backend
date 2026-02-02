@@ -37,26 +37,37 @@ export class ImageService {
 
   async generateUploadSignature(
     userId: string,
-    scoreId: string,
+    scoreId?: string,
+    clientId?: string,
   ): Promise<SignatureResponseDto> {
-    // Validate scoreId exists and belongs to user
-    const bcs = await this.bcsRepository.findOne({
-      where: { id: scoreId },
-      relations: ['cow'],
-    });
+    // If scoreId provided, validate it exists and belongs to user
+    if (scoreId) {
+      const bcs = await this.bcsRepository.findOne({
+        where: { id: scoreId },
+        relations: ['cow'],
+      });
 
-    if (!bcs) {
-      throw new NotFoundException('Body condition score not found');
+      if (!bcs) {
+        throw new NotFoundException('Body condition score not found');
+      }
+
+      if (bcs.cow.userId !== userId) {
+        throw new ForbiddenException(
+          'You do not have permission to upload images for this score',
+        );
+      }
     }
 
-    if (bcs.cow.userId !== userId) {
-      throw new ForbiddenException(
-        'You do not have permission to upload images for this score',
+    // If clientId provided (offline-first), validate format but don't require DB record
+    if (!scoreId && !clientId) {
+      throw new NotFoundException(
+        'Either scoreId or clientId must be provided',
       );
     }
 
     const timestamp = Math.round(Date.now() / 1000);
-    const publicId = `analysis_${scoreId}`;
+    const identifier = scoreId || clientId!;
+    const publicId = `analysis_${identifier}`;
 
     // Generate signature using Cloudinary SDK
     const paramsToSign = {

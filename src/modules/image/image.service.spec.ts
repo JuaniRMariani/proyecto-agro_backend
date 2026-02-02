@@ -85,6 +85,20 @@ describe('ImageService', () => {
       });
     });
 
+    it('should generate signature with clientId when scoreId not provided', async () => {
+      const clientId = 'client-uuid-123';
+
+      const result = await service.generateUploadSignature(
+        userId,
+        undefined,
+        clientId,
+      );
+
+      expect(result).toHaveProperty('signature');
+      expect(result).toHaveProperty('publicId', `analysis_${clientId}`);
+      expect(mockBcsRepository.findOne).not.toHaveBeenCalled();
+    });
+
     it('should throw NotFoundException when score does not exist', async () => {
       mockBcsRepository.findOne.mockResolvedValue(null);
 

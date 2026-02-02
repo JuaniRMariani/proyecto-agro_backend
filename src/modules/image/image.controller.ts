@@ -42,6 +42,7 @@ export class ImageController {
     return this.imageService.generateUploadSignature(
       req.user.userId,
       signatureRequest.scoreId,
+      signatureRequest.clientId,
     );
   }
 }

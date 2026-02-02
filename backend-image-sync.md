@@ -2,13 +2,24 @@
 
 Este documento resume lo que el backend debe implementar para soportar el flujo de imágenes offline‑first.
 
+## Opción preferida (sin doble sync): usar `clientId`
+Si no querés esperar a que el análisis exista en el backend para pedir la firma, el backend debe aceptar un identificador **clientId** (UUID generado por la app). Así se puede firmar y subir imagen en la misma ventana de sincronización.
+
+### Cambios necesarios
+- Guardar `clientId` en la entidad de análisis (columna única).
+- En el sync, si llega un análisis sin `id` del servidor, usar `clientId` para crear/actualizar.
+- En el response, devolver `clientId` + `id` para reconciliar en la app.
+- En `/api/images/signature`, aceptar `clientId` (además de `scoreId`) y **no** exigir que el análisis exista aún.
+- En el sync, aceptar `imageUrl`/`imagePublicId` y vincularlos usando `clientId`.
+
 ## 1) Endpoint de firma (upload directo)
 **POST** `/api/images/signature`
 
 **Request**
 ```json
 {
-  "scoreId": "<analysis-id>"
+  "scoreId": "<analysis-id>",
+  "clientId": "<client-generated-uuid>"
 }
 ```
 
@@ -27,7 +38,7 @@ Este documento resume lo que el backend debe implementar para soportar el flujo 
 
 **Notas**
 - La firma debe generarse con el `api_secret` (solo backend).
-- Validar autenticación/permiso para el `scoreId`.
+- Validar autenticación/permiso para el `scoreId` o `clientId`.
 - Enviar `uploadUrl` o `cloudName` (uno de los dos es suficiente).
 - (Opcional) aplicar reglas de tamaño/tipo/transformaciones.
 

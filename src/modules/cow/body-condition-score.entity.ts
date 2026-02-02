@@ -43,6 +43,9 @@ export class BodyConditionScore {
   @Column({ type: 'varchar', nullable: true })
   imagePublicId: string | null;
 
+  @Column({ type: 'varchar', nullable: true, unique: true })
+  clientId: string | null;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 }

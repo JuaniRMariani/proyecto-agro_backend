@@ -30,6 +30,7 @@ export function bcsMapperToResponseDto(
 
   return new BodyConditionScoreResponseDto({
     id: bcs.id,
+    clientId: bcs.clientId,
     score: Number(bcs.score),
     recordedAt: bcs.recordedAt,
     observation: bcs.observation,

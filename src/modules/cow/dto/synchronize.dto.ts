@@ -54,6 +54,11 @@ export class SyncBodyConditionScoreDto {
   @IsUUID('4', { message: 'Id must be a valid UUID' })
   id?: string;
 
+  @ApiPropertyOptional({ example: 'client-uuid-123' })
+  @IsOptional()
+  @IsUUID('4', { message: 'ClientId must be a valid UUID' })
+  clientId?: string;
+
   @ApiPropertyOptional({ example: '530' })
   @IsString({ message: 'Cow tag number must be a string' })
   @IsNotEmpty({ message: 'Cow tag number is required' })
