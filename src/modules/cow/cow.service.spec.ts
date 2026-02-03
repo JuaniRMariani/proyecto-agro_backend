@@ -38,11 +38,80 @@ describe('CowService', () => {
     service = module.get<CowService>(CowService);
   });
 
-  it('throws conflict when creating a cow with existing tag number', async () => {
-    cowRepository.findByTagNumber.mockResolvedValue({ id: 'cow-1' } as any);
+  it('throws conflict when creating a cow with existing non-deleted tag number', async () => {
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
+      id: 'cow-1',
+      userId: 'user-1',
+      deleted: false,
+    } as any);
     await expect(
       service.createCow({ tagNumber: '123', weight: 100 }, 'user-1'),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('restores deleted cow when creating with same tag number', async () => {
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
+      id: 'cow-1',
+      userId: 'user-1',
+      deleted: true,
+      tagNumber: '123',
+    } as any);
+    cowRepository.update.mockResolvedValue({
+      id: 'cow-1',
+      userId: 'user-1',
+      deleted: false,
+      tagNumber: '123',
+      weight: 150,
+      bodyConditionScores: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+
+    const result = await service.createCow(
+      { tagNumber: '123', weight: 150 },
+      'user-1',
+    );
+
+    expect(cowRepository.update).toHaveBeenCalledWith('cow-1', 'user-1', {
+      deleted: false,
+      syncAt: expect.any(Date),
+      weight: 150,
+      breed: undefined,
+    });
+    expect(result.id).toBe('cow-1');
+  });
+
+  it('throws conflict when restoring deleted cow owned by another user', async () => {
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
+      id: 'cow-1',
+      userId: 'user-2',
+      deleted: true,
+    } as any);
+
+    await expect(
+      service.createCow({ tagNumber: '123', weight: 100 }, 'user-1'),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('creates new cow when tag number does not exist', async () => {
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(null);
+    cowRepository.create.mockResolvedValue({
+      id: 'cow-new',
+      userId: 'user-1',
+      tagNumber: '123',
+      weight: 100,
+      bodyConditionScores: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+
+    const result = await service.createCow(
+      { tagNumber: '123', weight: 100 },
+      'user-1',
+    );
+
+    expect(cowRepository.create).toHaveBeenCalled();
+    expect(result.id).toBe('cow-new');
   });
 
   it('synchronizes cows: deletes when marked deleted', async () => {

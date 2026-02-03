@@ -77,10 +77,36 @@ export class CowService {
     createCowDto: CreateCowDto,
     userId: string,
   ): Promise<CowResponseDto> {
-    const existingCow = await this.cowRepository.findByTagNumber(
+    const existingCow = await this.cowRepository.findByTagNumberIncludingDeleted(
       createCowDto.tagNumber,
     );
+
     if (existingCow) {
+      // Si la vaca existe pero está borrada, la restauramos
+      if (existingCow.deleted) {
+        if (existingCow.userId !== userId) {
+          throw new ConflictException(
+            'A cow with this tag number already exists',
+          );
+        }
+        const updateData: CowUpdateData = {
+          deleted: false,
+          syncAt: new Date(),
+          weight: createCowDto.weight,
+          breed: createCowDto.breed,
+        };
+        const restoredCow = await this.cowRepository.update(
+          existingCow.id,
+          userId,
+          updateData,
+        );
+        const mappedCow = cowMapperToResponseDto(restoredCow);
+        if (!mappedCow) {
+          throw new InternalServerErrorException('Error mapping restored cow');
+        }
+        return mappedCow;
+      }
+      // Si la vaca existe y no está borrada, lanzar error
       throw new ConflictException('A cow with this tag number already exists');
     }
 
