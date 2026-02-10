@@ -39,6 +39,9 @@ export class Cow {
   @Column({ type: 'timestamp', nullable: true })
   syncAt: Date | null;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  location: string | null;
+
   @OneToMany(() => BodyConditionScore, (bcs) => bcs.cow, { cascade: true })
   bodyConditionScores: BodyConditionScore[];
 

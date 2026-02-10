@@ -25,4 +25,10 @@ export class UpdateCowDto {
   @IsNumber({}, { message: 'Weight must be a number' })
   @IsPositive({ message: 'Weight must be a positive number' })
   weight?: number;
+
+  @ApiPropertyOptional({ example: 'Buenos Aires, Argentina' })
+  @IsOptional()
+  @IsString({ message: 'Location must be a string' })
+  @MaxLength(255, { message: 'Location cannot exceed 255 characters' })
+  location?: string;
 }

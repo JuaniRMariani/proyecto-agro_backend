@@ -7,8 +7,8 @@ export class BodyConditionScoreResponseDto {
   @ApiPropertyOptional({ example: 'client-uuid-123' })
   clientId: string | null;
 
-  @ApiProperty({ example: 3 })
-  score: number;
+  @ApiProperty({ example: '3' })
+  score: string;
 
   @ApiProperty({ example: '2026-01-22T00:00:00.000Z' })
   recordedAt: Date;

@@ -13,8 +13,8 @@ export class BodyConditionScore {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'decimal', precision: 3, scale: 1 })
-  score: number;
+  @Column({ type: 'varchar', length: 10 })
+  score: string;
 
   @Column({ type: 'timestamp' })
   recordedAt: Date;

@@ -13,6 +13,7 @@ export function cowMapperToResponseDto(cow: Cow): CowResponseDto | null {
     tagNumber: cow.tagNumber,
     breed: cow.breed,
     weight: Number(cow.weight),
+    location: cow.location,
     userId: cow.userId,
     bodyConditionScores: cow.bodyConditionScores
       ?.filter((bcs) => !bcs.deleted)
@@ -31,7 +32,7 @@ export function bcsMapperToResponseDto(
   return new BodyConditionScoreResponseDto({
     id: bcs.id,
     clientId: bcs.clientId,
-    score: Number(bcs.score),
+    score: bcs.score,
     recordedAt: bcs.recordedAt,
     observation: bcs.observation,
     cowId: bcs.cowId,

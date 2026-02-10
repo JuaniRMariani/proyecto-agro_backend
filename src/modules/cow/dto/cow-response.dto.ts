@@ -14,6 +14,9 @@ export class CowResponseDto {
   @ApiProperty({ example: 900 })
   weight: number;
 
+  @ApiPropertyOptional({ example: 'Buenos Aires, Argentina' })
+  location: string | null;
+
   @ApiProperty({ example: '3b6efa53-e23f-4bda-adf5-29ae714acac4' })
   userId: string;
 

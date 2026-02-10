@@ -26,4 +26,10 @@ export class CreateCowDto {
   @IsPositive({ message: 'Weight must be a positive number' })
   @IsOptional()
   weight?: number;
+
+  @ApiPropertyOptional({ example: 'Buenos Aires, Argentina' })
+  @IsOptional()
+  @IsString({ message: 'Location must be a string' })
+  @MaxLength(255, { message: 'Location cannot exceed 255 characters' })
+  location?: string;
 }

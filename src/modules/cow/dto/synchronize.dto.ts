@@ -46,6 +46,11 @@ export class SyncCowDto {
   @IsOptional()
   @IsBoolean({ message: 'Deleted must be a boolean' })
   deleted?: boolean;
+
+  @ApiPropertyOptional({ example: 'Buenos Aires, Argentina' })
+  @IsOptional()
+  @IsString({ message: 'Location must be a string' })
+  location?: string;
 }
 
 export class SyncBodyConditionScoreDto {
@@ -64,10 +69,10 @@ export class SyncBodyConditionScoreDto {
   @IsNotEmpty({ message: 'Cow tag number is required' })
   cowTagNumber: string;
 
-  @ApiPropertyOptional({ example: 3 })
+  @ApiPropertyOptional({ example: '3' })
   @IsOptional()
-  @IsNumber({}, { message: 'Score must be a number' })
-  score?: number;
+  @IsString({ message: 'Score must be a string' })
+  score?: string;
 
   @ApiPropertyOptional({ example: 1769017035502 })
   @IsOptional()
