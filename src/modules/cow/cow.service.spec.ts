@@ -2,6 +2,25 @@ import { ConflictException, BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CowService } from './cow.service';
 import { ICowRepository } from './infra/cow.repository';
+import { Cow } from './cow.entity';
+import { BodyConditionScore } from './body-condition-score.entity';
+
+function makeCow(partial: Partial<Cow> = {}): Cow {
+  return Object.assign(new Cow(), {
+    id: 'cow-1',
+    userId: 'user-1',
+    tagNumber: '123',
+    weight: 100,
+    deleted: false,
+    syncAt: null,
+    location: null,
+    bodyConditionScores: [],
+    ownershipHistory: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...partial,
+  });
+}
 
 describe('CowService', () => {
   let service: CowService;
@@ -24,6 +43,9 @@ describe('CowService', () => {
       syncBodyConditionScore: jest.fn(),
       findBcsHistory: jest.fn(),
       deleteBcs: jest.fn(),
+      overrideBcs: jest.fn(),
+      revertBcsOverride: jest.fn(),
+      applyProfessionalRecommendation: jest.fn(),
       findOwnershipHistory: jest.fn(),
     };
     cowRepository.findAllByUserId.mockResolvedValue([]);
@@ -39,54 +61,38 @@ describe('CowService', () => {
   });
 
   it('throws conflict when creating a cow with existing non-deleted tag number', async () => {
-    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-1',
-      deleted: false,
-    } as any);
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(makeCow());
     await expect(
       service.createCow({ tagNumber: '123', weight: 100 }, 'user-1'),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('restores deleted cow when creating with same tag number', async () => {
-    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-1',
-      deleted: true,
-      tagNumber: '123',
-    } as any);
-    cowRepository.update.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-1',
-      deleted: false,
-      tagNumber: '123',
-      weight: 150,
-      bodyConditionScores: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any);
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(
+      makeCow({ deleted: true }),
+    );
+    cowRepository.update.mockResolvedValue(makeCow({ weight: 150 }));
 
     const result = await service.createCow(
       { tagNumber: '123', weight: 150 },
       'user-1',
     );
 
-    expect(cowRepository.update).toHaveBeenCalledWith('cow-1', 'user-1', {
+    expect(cowRepository.update.mock.calls).toHaveLength(1);
+    const updateData = cowRepository.update.mock.calls[0][2];
+    expect(updateData).toMatchObject({
       deleted: false,
-      syncAt: expect.any(Date),
       weight: 150,
       breed: undefined,
     });
+    expect(updateData.syncAt).toBeInstanceOf(Date);
     expect(result.id).toBe('cow-1');
   });
 
   it('throws conflict when restoring deleted cow owned by another user', async () => {
-    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-2',
-      deleted: true,
-    } as any);
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(
+      makeCow({ userId: 'user-2', deleted: true }),
+    );
 
     await expect(
       service.createCow({ tagNumber: '123', weight: 100 }, 'user-1'),
@@ -95,54 +101,41 @@ describe('CowService', () => {
 
   it('creates new cow when tag number does not exist', async () => {
     cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(null);
-    cowRepository.create.mockResolvedValue({
-      id: 'cow-new',
-      userId: 'user-1',
-      tagNumber: '123',
-      weight: 100,
-      bodyConditionScores: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any);
+    cowRepository.create.mockResolvedValue(makeCow({ id: 'cow-new' }));
 
     const result = await service.createCow(
       { tagNumber: '123', weight: 100 },
       'user-1',
     );
 
-    expect(cowRepository.create).toHaveBeenCalled();
+    expect(cowRepository.create.mock.calls).toHaveLength(1);
     expect(result.id).toBe('cow-new');
   });
 
   it('synchronizes cows: deletes when marked deleted', async () => {
-    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-1',
-    } as any);
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(makeCow());
 
     const result = await service.synchronize('user-1', {
       cows: [{ tagNumber: '123', deleted: true }],
       scores: [],
     });
 
-    expect(cowRepository.delete).toHaveBeenCalledWith('cow-1', 'user-1');
+    expect(cowRepository.delete.mock.calls).toContainEqual(['cow-1', 'user-1']);
     expect(result.cows.deleted).toBe(1);
     expect(result.data).toEqual([]);
   });
 
   it('synchronizes cows: skips older updates', async () => {
-    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-1',
-      updatedAt: new Date(2000),
-    } as any);
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(
+      makeCow({ updatedAt: new Date(2000) }),
+    );
 
     const result = await service.synchronize('user-1', {
       cows: [{ tagNumber: '123', updatedAt: 1000 }],
       scores: [],
     });
 
-    expect(cowRepository.update).not.toHaveBeenCalled();
+    expect(cowRepository.update.mock.calls).toHaveLength(0);
     expect(result.cows.skipped).toBe(1);
   });
 
@@ -153,7 +146,7 @@ describe('CowService', () => {
       scores: [],
     });
 
-    expect(cowRepository.create).toHaveBeenCalled();
+    expect(cowRepository.create.mock.calls).toHaveLength(1);
     expect(result.cows.created).toBe(1);
   });
 
@@ -163,7 +156,10 @@ describe('CowService', () => {
       scores: [{ id: 'bcs-1', cowTagNumber: '123', deleted: true }],
     });
 
-    expect(cowRepository.deleteBcs).toHaveBeenCalledWith('bcs-1', 'user-1');
+    expect(cowRepository.deleteBcs.mock.calls).toContainEqual([
+      'bcs-1',
+      'user-1',
+    ]);
     expect(result.scores.deleted).toBe(1);
   });
 
@@ -177,12 +173,11 @@ describe('CowService', () => {
   });
 
   it('synchronizes scores: creates or updates for existing cow', async () => {
-    cowRepository.findByTagNumber.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-1',
-    } as any);
+    cowRepository.findByTagNumber.mockResolvedValue(makeCow());
+    const syncedBcs = new BodyConditionScore();
+    syncedBcs.id = 'bcs-1';
     cowRepository.syncBodyConditionScore.mockResolvedValue({
-      bcs: { id: 'bcs-1' } as any,
+      bcs: syncedBcs,
       created: true,
     });
 
@@ -191,37 +186,34 @@ describe('CowService', () => {
       scores: [
         {
           cowTagNumber: '123',
-          score: 3,
+          score: '3.0-3.7',
           recordedAt: 1000,
         },
       ],
     });
 
-    expect(cowRepository.syncBodyConditionScore).toHaveBeenCalled();
+    expect(cowRepository.syncBodyConditionScore.mock.calls).toHaveLength(1);
     expect(result.scores.created).toBe(1);
   });
 
   it('synchronizes cows: updates when newer timestamp', async () => {
-    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-1',
-      updatedAt: new Date(1000),
-    } as any);
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(
+      makeCow({ updatedAt: new Date(1000) }),
+    );
 
     const result = await service.synchronize('user-1', {
       cows: [{ tagNumber: '123', updatedAt: 2000, weight: 300 }],
       scores: [],
     });
 
-    expect(cowRepository.update).toHaveBeenCalled();
+    expect(cowRepository.update.mock.calls).toHaveLength(1);
     expect(result.cows.updated).toBe(1);
   });
 
   it('synchronizes cows: conflicts on tagNumber owned by another user', async () => {
-    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue({
-      id: 'cow-1',
-      userId: 'user-2',
-    } as any);
+    cowRepository.findByTagNumberIncludingDeleted.mockResolvedValue(
+      makeCow({ userId: 'user-2' }),
+    );
 
     await expect(
       service.synchronize('user-1', {
@@ -236,7 +228,7 @@ describe('CowService', () => {
 
     const result = await service.synchronize('user-1', {
       cows: [],
-      scores: [{ cowTagNumber: 'missing', score: 2, recordedAt: 1000 }],
+      scores: [{ cowTagNumber: 'missing', score: '2.2-2.9', recordedAt: 1000 }],
     });
 
     expect(result.scores.skipped).toBe(1);

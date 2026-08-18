@@ -8,6 +8,7 @@ import { ApiResponse } from './api-response.interface';
 import { map, Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
 import { RESPONSE_MESSAGE_KEY } from '../decorators/response-message.decorator';
+import type { Response } from 'express';
 
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<
@@ -31,7 +32,8 @@ export class TransformInterceptor<T> implements NestInterceptor<
             data,
             message:
               customMessage || 'La solicitud se ha procesado correctamente',
-            statusCode: context.switchToHttp().getResponse().statusCode,
+            statusCode: context.switchToHttp().getResponse<Response>()
+              .statusCode,
             timestamp: new Date().toISOString(),
           }) as ApiResponse<T>,
       ),

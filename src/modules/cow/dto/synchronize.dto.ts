@@ -8,8 +8,13 @@ import {
   IsString,
   IsUUID,
   ValidateNested,
+  IsIn,
+  IsEnum,
 } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { BCS_SCORE_VALUES } from '../bcs-score.constants';
+import type { BcsScore } from '../bcs-score.constants';
+import { ScoreSource } from '../score-source.enum';
 
 export class SyncCowDto {
   @ApiPropertyOptional({ example: '530' })
@@ -69,10 +74,37 @@ export class SyncBodyConditionScoreDto {
   @IsNotEmpty({ message: 'Cow tag number is required' })
   cowTagNumber: string;
 
-  @ApiPropertyOptional({ example: '3' })
+  @ApiPropertyOptional({ enum: BCS_SCORE_VALUES, example: '3.0-3.7' })
   @IsOptional()
   @IsString({ message: 'Score must be a string' })
-  score?: string;
+  @IsIn(BCS_SCORE_VALUES, { message: 'El score BCS no es válido' })
+  score?: BcsScore;
+
+  @ApiPropertyOptional({ enum: BCS_SCORE_VALUES, example: '3.0-3.7' })
+  @IsOptional()
+  @IsString({ message: 'ModelScore must be a string' })
+  @IsIn(BCS_SCORE_VALUES, { message: 'El score BCS original no es válido' })
+  modelScore?: BcsScore;
+
+  @ApiPropertyOptional({ enum: ScoreSource })
+  @IsOptional()
+  @IsEnum(ScoreSource, { message: 'ScoreSource no es válido' })
+  scoreSource?: ScoreSource;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  overrideReason?: string | null;
+
+  @ApiPropertyOptional({ example: 1769017035502 })
+  @IsOptional()
+  @IsNumber({}, { message: 'OverriddenAt must be epoch ms' })
+  overriddenAt?: number | null;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID('4', { message: 'AppliedReviewId must be a valid UUID' })
+  appliedReviewId?: string | null;
 
   @ApiPropertyOptional({ example: 1769017035502 })
   @IsOptional()

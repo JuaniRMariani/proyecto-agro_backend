@@ -6,7 +6,6 @@ import { SignatureResponseDto } from './dto/signature-response.dto';
 
 describe('ImageController', () => {
   let controller: ImageController;
-  let service: ImageService;
 
   const mockImageService = {
     generateUploadSignature: jest.fn(),
@@ -24,7 +23,6 @@ describe('ImageController', () => {
     }).compile();
 
     controller = module.get<ImageController>(ImageController);
-    service = module.get<ImageService>(ImageService);
   });
 
   afterEach(() => {

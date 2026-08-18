@@ -19,7 +19,7 @@ export class UserTypeOrmRepository implements IUserRepository {
   }
 
   async create(user: Partial<CreateUserDto>): Promise<User> {
-    const newUser = await this.typeOrmRepo.create(user);
+    const newUser = this.typeOrmRepo.create(user);
     return await this.typeOrmRepo.save(newUser);
   }
 
@@ -65,8 +65,8 @@ export class UserTypeOrmRepository implements IUserRepository {
 
   async clearVerificationCode(id: string): Promise<void> {
     await this.typeOrmRepo.update(id, {
-      resetPasswordToken: undefined,
-      resetPasswordExpires: undefined,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
     });
   }
 

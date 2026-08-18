@@ -1,4 +1,5 @@
-﻿import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
+import { AccountRole } from '../account-role.enum';
 
 export class UserResponseDto {
   @ApiProperty({ example: 'uuid' })
@@ -9,6 +10,9 @@ export class UserResponseDto {
 
   @ApiProperty({ example: 'user@example.com' })
   email: string;
+
+  @ApiProperty({ enum: AccountRole, example: AccountRole.PRODUCER })
+  role: AccountRole;
 
   constructor(partial: Partial<UserResponseDto>) {
     Object.assign(this, partial);

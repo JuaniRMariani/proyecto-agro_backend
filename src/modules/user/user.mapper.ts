@@ -8,5 +8,6 @@ export function userMapperToResponseDto(user: User): UserResponseDto | null {
     id: user.id,
     fullName: user.fullName,
     email: user.email,
+    role: user.role,
   });
 }

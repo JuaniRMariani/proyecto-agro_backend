@@ -1,14 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ImageService } from './image.service';
 import { BodyConditionScore } from '../cow/body-condition-score.entity';
 
 describe('ImageService', () => {
   let service: ImageService;
-  let bcsRepository: Repository<BodyConditionScore>;
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
@@ -41,9 +39,6 @@ describe('ImageService', () => {
     }).compile();
 
     service = module.get<ImageService>(ImageService);
-    bcsRepository = module.get<Repository<BodyConditionScore>>(
-      getRepositoryToken(BodyConditionScore),
-    );
   });
 
   afterEach(() => {
@@ -78,7 +73,10 @@ describe('ImageService', () => {
       expect(result).toHaveProperty('cloudName', 'test-cloud');
       expect(result).toHaveProperty('folder', 'analysis');
       expect(result).toHaveProperty('publicId', `analysis_${scoreId}`);
-      expect(result).toHaveProperty('uploadUrl', 'https://api.cloudinary.com/v1_1/test-cloud/image/upload');
+      expect(result).toHaveProperty(
+        'uploadUrl',
+        'https://api.cloudinary.com/v1_1/test-cloud/image/upload',
+      );
       expect(mockBcsRepository.findOne).toHaveBeenCalledWith({
         where: { id: scoreId },
         relations: ['cow'],

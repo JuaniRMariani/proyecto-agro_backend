@@ -1,4 +1,5 @@
-﻿import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ScoreSource } from '../score-source.enum';
 
 export class BodyConditionScoreResponseDto {
   @ApiProperty({ example: '73583dc2-e179-4931-b495-1f85c1382152' })
@@ -7,8 +8,26 @@ export class BodyConditionScoreResponseDto {
   @ApiPropertyOptional({ example: 'client-uuid-123' })
   clientId: string | null;
 
-  @ApiProperty({ example: '3' })
+  @ApiProperty({ example: '3.0-3.7' })
   score: string;
+
+  @ApiProperty({ example: '3.0-3.7' })
+  modelScore: string;
+
+  @ApiProperty({ enum: ScoreSource, example: ScoreSource.MODEL })
+  scoreSource: ScoreSource;
+
+  @ApiPropertyOptional()
+  overrideReason: string | null;
+
+  @ApiPropertyOptional()
+  overriddenAt: Date | null;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  overriddenByUserId: string | null;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  appliedReviewId: string | null;
 
   @ApiProperty({ example: '2026-01-22T00:00:00.000Z' })
   recordedAt: Date;

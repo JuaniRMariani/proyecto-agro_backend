@@ -32,7 +32,7 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException('Credenciales inválidas');
     }
-    const accessToken = await this.getAccessToken(user);
+    const accessToken = this.getAccessToken(user);
     const mappedAuthResponse = authMapperToResponseDto(user, accessToken);
     if (!mappedAuthResponse) {
       throw new ConflictException(
@@ -47,7 +47,7 @@ export class AuthService {
       throw new BadRequestException('Las contraseñas no coinciden');
     }
     const newUser = await this.userService.createUser(userData);
-    const accessToken = await this.getAccessToken(newUser);
+    const accessToken = this.getAccessToken(newUser);
     const mappedAuthResponse = new AuthResponseDto({
       accessToken,
       user: newUser,
@@ -55,7 +55,7 @@ export class AuthService {
     return mappedAuthResponse;
   }
 
-  async logout(tokenToInvalidate: string) {
+  async logout(tokenToInvalidate: string | undefined): Promise<void> {
     if (!tokenToInvalidate) {
       throw new UnauthorizedException('Token no proporcionado');
     }
@@ -68,7 +68,7 @@ export class AuthService {
       throw new NotFoundException('Usuario no encontrado');
     }
     const verificationCode = await this.generateVerificationCode(user.id);
-    this.emailService.sendVerificationCode(email, verificationCode);
+    await this.emailService.sendVerificationCode(email, verificationCode);
   }
 
   async verifyCode(code: string): Promise<{ valid: boolean }> {
@@ -108,8 +108,8 @@ export class AuthService {
     return null;
   }
 
-  private async getAccessToken(user: UserResponseDto): Promise<string> {
-    const payload = { username: user.email, sub: user.id };
+  private getAccessToken(user: UserResponseDto): string {
+    const payload = { email: user.email, role: user.role, sub: user.id };
     return this.jwtService.sign(payload);
   }
 
@@ -122,7 +122,7 @@ export class AuthService {
 
   private async generateVerificationCode(userId: string): Promise<string> {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    this.userService.saveVerificationCode(
+    await this.userService.saveVerificationCode(
       userId,
       code,
       new Date(Date.now() + 10 * 60 * 1000),

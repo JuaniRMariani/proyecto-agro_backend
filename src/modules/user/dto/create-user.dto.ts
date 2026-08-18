@@ -5,8 +5,10 @@
   IsOptional,
   MaxLength,
   IsNotEmpty,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AccountRole } from '../account-role.enum';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'user@example.com' })
@@ -21,6 +23,15 @@ export class CreateUserDto {
     message: 'El nombre completo no puede exceder los 100 caracteres',
   })
   fullName: string;
+
+  @ApiPropertyOptional({
+    enum: AccountRole,
+    default: AccountRole.PRODUCER,
+    example: AccountRole.PRODUCER,
+  })
+  @IsOptional()
+  @IsEnum(AccountRole, { message: 'El rol de cuenta no es válido' })
+  role?: AccountRole;
 
   @ApiProperty({ example: 'StrongPass123' })
   @IsString({ message: 'La contraseÃ±a debe ser una cadena de texto' })

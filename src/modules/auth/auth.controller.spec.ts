@@ -1,10 +1,44 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedRequest } from '../../common/auth/authenticated-request.interface';
+import { AccountRole } from '../user/account-role.enum';
 import { AuthController } from './auth.controller';
+import type { AuthResponseDto } from './dto/auth-response.dto';
 import { AuthService } from './auth.service';
+
+type AuthServiceMock = jest.Mocked<
+  Pick<
+    AuthService,
+    | 'login'
+    | 'register'
+    | 'logout'
+    | 'sendCode'
+    | 'verifyCode'
+    | 'resetPassword'
+  >
+>;
+
+const authResponse: AuthResponseDto = {
+  accessToken: 'token',
+  user: {
+    id: '11111111-1111-4111-8111-111111111111',
+    fullName: 'Test',
+    email: 't@example.com',
+    role: AccountRole.PRODUCER,
+  },
+};
+
+const authenticatedRequest: AuthenticatedRequest = {
+  headers: { authorization: 'Bearer token' },
+  user: {
+    userId: authResponse.user.id,
+    email: authResponse.user.email,
+    role: AccountRole.PRODUCER,
+  },
+};
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: jest.Mocked<AuthService>;
+  let authService: AuthServiceMock;
 
   beforeEach(async () => {
     authService = {
@@ -14,7 +48,7 @@ describe('AuthController', () => {
       sendCode: jest.fn(),
       verifyCode: jest.fn(),
       resetPassword: jest.fn(),
-    } as any;
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
@@ -29,40 +63,34 @@ describe('AuthController', () => {
   });
 
   it('logs in user', async () => {
-    authService.login.mockResolvedValue({
-      accessToken: 'token',
-      user: {},
-    } as any);
+    authService.login.mockResolvedValue(authResponse);
+
     await expect(
       controller.login({ email: 't@example.com', password: 'pass' }),
-    ).resolves.toEqual({ accessToken: 'token', user: {} });
+    ).resolves.toEqual(authResponse);
   });
 
   it('registers user', async () => {
-    authService.register.mockResolvedValue({
-      accessToken: 'token',
-      user: {},
-    } as any);
+    authService.register.mockResolvedValue(authResponse);
+
     await expect(
       controller.register({
         fullName: 'Test',
         email: 't@example.com',
         password: 'pass',
         passwordConfirmation: 'pass',
-      } as any),
-    ).resolves.toEqual({ accessToken: 'token', user: {} });
+      }),
+    ).resolves.toEqual(authResponse);
   });
 
   it('logs out user', async () => {
-    await controller.logout({
-      headers: { authorization: 'Bearer token' },
-    } as any);
-    expect(authService.logout).toHaveBeenCalledWith('token');
+    await controller.logout(authenticatedRequest);
+    expect(authService.logout.mock.calls).toContainEqual(['token']);
   });
 
   it('sends code', async () => {
     await controller.sendCode({ email: 't@example.com' });
-    expect(authService.sendCode).toHaveBeenCalledWith('t@example.com');
+    expect(authService.sendCode.mock.calls).toContainEqual(['t@example.com']);
   });
 
   it('verifies code', async () => {
@@ -77,11 +105,11 @@ describe('AuthController', () => {
       code: '123456',
       password: 'pass',
       passwordConfirmation: 'pass',
-    } as any);
-    expect(authService.resetPassword).toHaveBeenCalledWith(
+    });
+    expect(authService.resetPassword.mock.calls).toContainEqual([
       '123456',
       'pass',
       'pass',
-    );
+    ]);
   });
 });

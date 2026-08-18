@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Patch,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -28,6 +29,8 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { AuthenticatedRequest } from '../../common/auth/authenticated-request.interface';
+import { OverrideBodyConditionScoreDto } from './dto/override-body-condition-score.dto';
 
 @Controller('cows')
 @ApiTags('cows')
@@ -39,8 +42,10 @@ export class CowController {
   @ResponseMessage('Cows retrieved successfully')
   @Get()
   @ApiOkResponse({ type: CowResponseDto, isArray: true })
-  async getMyCows(@Request() req): Promise<CowResponseDto[]> {
-    return this.cowService.getCowsByUserId(req.user.userId);
+  async getMyCows(
+    @Request() request: AuthenticatedRequest,
+  ): Promise<CowResponseDto[]> {
+    return this.cowService.getCowsByUserId(request.user.userId);
   }
 
   @ResponseMessage('Cow retrieved successfully')
@@ -48,9 +53,9 @@ export class CowController {
   @ApiOkResponse({ type: CowResponseDto })
   async getCowById(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<CowResponseDto | null> {
-    return this.cowService.getCowById(id, req.user.userId);
+    return this.cowService.getCowById(id, request.user.userId);
   }
 
   @ResponseMessage('Cow retrieved successfully')
@@ -58,9 +63,9 @@ export class CowController {
   @ApiOkResponse({ type: CowResponseDto })
   async getCowByTagNumber(
     @Param('tagNumber') tagNumber: string,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<CowResponseDto | null> {
-    return this.cowService.getCowByTagNumber(tagNumber, req.user.userId);
+    return this.cowService.getCowByTagNumber(tagNumber, request.user.userId);
   }
 
   @ResponseMessage('Cow created successfully')
@@ -68,9 +73,9 @@ export class CowController {
   @ApiCreatedResponse({ type: CowResponseDto })
   async createCow(
     @Body() createCowDto: CreateCowDto,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<CowResponseDto> {
-    return this.cowService.createCow(createCowDto, req.user.userId);
+    return this.cowService.createCow(createCowDto, request.user.userId);
   }
 
   @ResponseMessage('Synchronization completed successfully')
@@ -106,9 +111,9 @@ export class CowController {
   })
   async synchronize(
     @Body() synchronizeDto: SynchronizeDto,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<SynchronizeResponseDto> {
-    return this.cowService.synchronize(req.user.userId, synchronizeDto);
+    return this.cowService.synchronize(request.user.userId, synchronizeDto);
   }
 
   @ResponseMessage('Cow updated successfully')
@@ -117,9 +122,9 @@ export class CowController {
   async updateCow(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateCowDto: UpdateCowDto,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<CowResponseDto | null> {
-    return this.cowService.updateCow(id, req.user.userId, updateCowDto);
+    return this.cowService.updateCow(id, request.user.userId, updateCowDto);
   }
 
   @ResponseMessage('Cow deleted successfully')
@@ -129,9 +134,9 @@ export class CowController {
   })
   async deleteCow(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<void> {
-    return this.cowService.deleteCow(id, req.user.userId);
+    return this.cowService.deleteCow(id, request.user.userId);
   }
 
   @ResponseMessage('Cow ownership transferred successfully')
@@ -140,9 +145,13 @@ export class CowController {
   async transferOwnership(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() transferDto: TransferCowOwnershipDto,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<CowResponseDto> {
-    return this.cowService.transferOwnership(id, req.user.userId, transferDto);
+    return this.cowService.transferOwnership(
+      id,
+      request.user.userId,
+      transferDto,
+    );
   }
 
   @ResponseMessage('Ownership history retrieved successfully')
@@ -150,9 +159,9 @@ export class CowController {
   @ApiOkResponse({ type: CowOwnershipHistoryResponseDto, isArray: true })
   async getOwnershipHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<CowOwnershipHistoryResponseDto[]> {
-    return this.cowService.getOwnershipHistory(id, req.user.userId);
+    return this.cowService.getOwnershipHistory(id, request.user.userId);
   }
 
   @ResponseMessage('Body condition score added successfully')
@@ -161,9 +170,13 @@ export class CowController {
   async addBodyConditionScore(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() bcsDto: CreateBodyConditionScoreDto,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<BodyConditionScoreResponseDto> {
-    return this.cowService.addBodyConditionScore(id, req.user.userId, bcsDto);
+    return this.cowService.addBodyConditionScore(
+      id,
+      request.user.userId,
+      bcsDto,
+    );
   }
 
   @ResponseMessage('Body condition score history retrieved successfully')
@@ -171,9 +184,30 @@ export class CowController {
   @ApiOkResponse({ type: BodyConditionScoreResponseDto, isArray: true })
   async getBcsHistory(
     @Param('id', ParseUUIDPipe) id: string,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<BodyConditionScoreResponseDto[]> {
-    return this.cowService.getBcsHistory(id, req.user.userId);
+    return this.cowService.getBcsHistory(id, request.user.userId);
+  }
+
+  @ResponseMessage('Body condition score overridden successfully')
+  @Patch('bcs/:bcsId/override')
+  @ApiOkResponse({ type: BodyConditionScoreResponseDto })
+  overrideBcs(
+    @Param('bcsId', ParseUUIDPipe) bcsId: string,
+    @Body() overrideDto: OverrideBodyConditionScoreDto,
+    @Request() request: AuthenticatedRequest,
+  ): Promise<BodyConditionScoreResponseDto> {
+    return this.cowService.overrideBcs(bcsId, request.user.userId, overrideDto);
+  }
+
+  @ResponseMessage('Body condition score override reverted successfully')
+  @Delete('bcs/:bcsId/override')
+  @ApiOkResponse({ type: BodyConditionScoreResponseDto })
+  revertBcsOverride(
+    @Param('bcsId', ParseUUIDPipe) bcsId: string,
+    @Request() request: AuthenticatedRequest,
+  ): Promise<BodyConditionScoreResponseDto> {
+    return this.cowService.revertBcsOverride(bcsId, request.user.userId);
   }
 
   @ResponseMessage('Body condition score deleted successfully')
@@ -185,8 +219,8 @@ export class CowController {
   })
   async deleteBcs(
     @Param('bcsId', ParseUUIDPipe) bcsId: string,
-    @Request() req,
+    @Request() request: AuthenticatedRequest,
   ): Promise<void> {
-    return this.cowService.deleteBcs(bcsId, req.user.userId);
+    return this.cowService.deleteBcs(bcsId, request.user.userId);
   }
 }

@@ -4,6 +4,10 @@ export class InitialSchema1768842440975 implements MigrationInterface {
   name = 'InitialSchema1768842440975';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+    await queryRunner.query(
+      `CREATE TABLE "user" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "fullName" character varying NOT NULL, "email" character varying NOT NULL, "password" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_user_email" UNIQUE ("email"), CONSTRAINT "PK_user_id" PRIMARY KEY ("id"))`,
+    );
     await queryRunner.query(
       `CREATE TABLE "body_condition_scores" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "score" numeric(3,1) NOT NULL, "recordedAt" TIMESTAMP NOT NULL, "observation" text, "cowId" uuid NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_591a6ec002fd6c10f0b90b5964b" PRIMARY KEY ("id"))`,
     );
@@ -61,5 +65,6 @@ export class InitialSchema1768842440975 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "cows"`);
     await queryRunner.query(`DROP TABLE "cow_ownership_history"`);
     await queryRunner.query(`DROP TABLE "body_condition_scores"`);
+    await queryRunner.query(`DROP TABLE "user"`);
   }
 }

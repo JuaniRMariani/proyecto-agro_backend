@@ -3,6 +3,7 @@ import {
   Inject,
   ConflictException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import type { IUserRepository } from './infra/user.repository';
@@ -11,6 +12,13 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { userMapperToResponseDto } from './user.mapper';
 import { User } from './user.entity';
+import { AccountRole } from './account-role.enum';
+
+function hasDatabaseErrorCode(error: unknown, expectedCode: string): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const candidate = error as { code?: unknown };
+  return candidate.code === expectedCode;
+}
 
 @Injectable()
 export class UserService {
@@ -32,11 +40,12 @@ export class UserService {
   }
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    const { password, ...userData } = createUserDto;
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     try {
       const newUser = await this.userRepository.create({
-        ...userData,
+        email: createUserDto.email,
+        fullName: createUserDto.fullName,
+        role: createUserDto.role ?? AccountRole.PRODUCER,
         password: hashedPassword,
       });
       const mappedUser = userMapperToResponseDto(newUser);
@@ -51,11 +60,18 @@ export class UserService {
     id: string,
     userData: Partial<UpdateUserDto>,
   ): Promise<UserResponseDto | null> {
+    if (
+      userData.passwordConfirmation !== undefined &&
+      userData.password !== userData.passwordConfirmation
+    ) {
+      throw new BadRequestException('Las contraseñas no coinciden');
+    }
     try {
       if (userData.password) {
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         userData.password = hashedPassword;
       }
+      delete userData.passwordConfirmation;
       const updatedUser = await this.userRepository.update(id, userData);
       const mappedUser = userMapperToResponseDto(updatedUser);
       if (!mappedUser) return null;
@@ -66,18 +82,28 @@ export class UserService {
   }
 
   async deleteUser(id: string): Promise<void> {
-    return this.userRepository.delete(id);
+    try {
+      await this.userRepository.delete(id);
+    } catch (error) {
+      if (hasDatabaseErrorCode(error, '23503')) {
+        throw new ConflictException(
+          'Las cuentas con historial o vÃ­nculos deben conservarse',
+        );
+      }
+      throw new InternalServerErrorException(
+        'No fue posible eliminar la cuenta',
+      );
+    }
   }
 
   async getUserByEmail(email: string): Promise<UserResponseDto | null> {
     const user = await this.userRepository.findByEmail(email);
-    if (!user) throw new Error('Usuario no encontrado');
+    if (!user) return null;
     return userMapperToResponseDto(user);
   }
 
-  async getUserByEmailWithPassword(email: string): Promise<User> {
+  async getUserByEmailWithPassword(email: string): Promise<User | null> {
     const user = await this.userRepository.findByEmailWithPassword(email);
-    if (!user) throw new Error('Las credenciales ingresadas son incorrectas');
     return user;
   }
 
@@ -102,8 +128,8 @@ export class UserService {
     return this.userRepository.changePassword(id, hashedPassword);
   }
 
-  private handleDbError(error: any): never {
-    if (error.code === '23505') {
+  private handleDbError(error: unknown): never {
+    if (hasDatabaseErrorCode(error, '23505')) {
       throw new ConflictException('El email ya está registrado en el sistema');
     }
 

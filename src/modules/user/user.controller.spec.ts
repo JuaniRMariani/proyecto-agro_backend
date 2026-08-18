@@ -1,25 +1,34 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedRequest } from '../../common/auth/authenticated-request.interface';
+import { AccountRole } from './account-role.enum';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 
+type UserControllerService = Pick<
+  UserService,
+  'getUserById' | 'updateUser' | 'deleteUser'
+>;
+
 describe('UserController', () => {
   let controller: UserController;
-  let userService: jest.Mocked<UserService>;
+  let userService: jest.Mocked<UserControllerService>;
+
+  const request: AuthenticatedRequest = {
+    user: {
+      userId: '11111111-1111-4111-8111-111111111111',
+      email: 'producer@example.com',
+      role: AccountRole.PRODUCER,
+    },
+    headers: {},
+  };
 
   beforeEach(async () => {
     userService = {
-      getAllUsers: jest.fn(),
       getUserById: jest.fn(),
-      createUser: jest.fn(),
       updateUser: jest.fn(),
       deleteUser: jest.fn(),
-      getUserByEmail: jest.fn(),
-      getUserByEmailWithPassword: jest.fn(),
-      saveVerificationCode: jest.fn(),
-      clearVerificationCode: jest.fn(),
-      findByVerificationCode: jest.fn(),
-      changePassword: jest.fn(),
-    } as any;
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
@@ -29,76 +38,53 @@ describe('UserController', () => {
     controller = module.get<UserController>(UserController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('returns only the authenticated profile', async () => {
+    const profile = {
+      id: request.user.userId,
+      fullName: 'Productor',
+      email: request.user.email,
+      role: AccountRole.PRODUCER,
+    };
+    userService.getUserById.mockResolvedValue(profile);
+
+    await expect(controller.getProfile(request)).resolves.toEqual(profile);
+    expect(userService.getUserById).toHaveBeenCalledWith(request.user.userId);
   });
 
-  it('returns users', async () => {
-    userService.getAllUsers.mockResolvedValue([
-      { id: 'user-1', fullName: 'Test', email: 't@example.com' },
-    ]);
-    await expect(controller.getUsers()).resolves.toEqual([
-      { id: 'user-1', fullName: 'Test', email: 't@example.com' },
-    ]);
+  it('keeps the legacy id route restricted to self', async () => {
+    userService.getUserById.mockResolvedValue(null);
+
+    await controller.getUserById(request.user.userId, request);
+
+    expect(userService.getUserById).toHaveBeenCalledWith(request.user.userId);
   });
 
-  it('creates user', async () => {
-    userService.createUser.mockResolvedValue({
-      id: 'user-1',
-      fullName: 'Test',
-      email: 't@example.com',
-    });
-    await expect(
-      controller.createUser({
-        fullName: 'Test',
-        email: 't@example.com',
-        password: 'pass',
-        passwordConfirmation: 'pass',
-      } as any),
-    ).resolves.toEqual({
-      id: 'user-1',
-      fullName: 'Test',
-      email: 't@example.com',
-    });
+  it('does not expose another user through the legacy id route', () => {
+    expect(() =>
+      controller.getUserById('22222222-2222-4222-8222-222222222222', request),
+    ).toThrow(NotFoundException);
   });
 
-  it('gets user by id from request', async () => {
-    userService.getUserById.mockResolvedValue({
-      id: 'user-1',
-      fullName: 'Test',
-      email: 't@example.com',
-    });
+  it('updates only the authenticated user', async () => {
+    userService.updateUser.mockResolvedValue(null);
 
-    await expect(
-      controller.getUserById({ user: { userId: 'user-1' } } as any),
-    ).resolves.toEqual({
-      id: 'user-1',
-      fullName: 'Test',
-      email: 't@example.com',
+    await controller.updateUser(request, { fullName: 'Actualizado' });
+
+    expect(userService.updateUser).toHaveBeenCalledWith(request.user.userId, {
+      fullName: 'Actualizado',
     });
   });
 
-  it('updates user', async () => {
-    userService.updateUser.mockResolvedValue({
-      id: 'user-1',
-      fullName: 'Updated',
-      email: 't@example.com',
-    });
+  it('deletes only the authenticated user', async () => {
+    await controller.deleteUser(request.user.userId, request);
 
-    await expect(
-      controller.updateUser(
-        { user: { userId: 'user-1' } } as any,
-        { fullName: 'Updated' } as any,
-      ),
-    ).resolves.toEqual({
-      id: 'user-1',
-      fullName: 'Updated',
-      email: 't@example.com',
-    });
+    expect(userService.deleteUser).toHaveBeenCalledWith(request.user.userId);
   });
 
-  it('deletes user', async () => {
-    await controller.deleteUser('user-1');
-    expect(userService.deleteUser).toHaveBeenCalledWith('user-1');
+  it('rejects deletion of another user', () => {
+    expect(() =>
+      controller.deleteUser('22222222-2222-4222-8222-222222222222', request),
+    ).toThrow(NotFoundException);
+    expect(userService.deleteUser).not.toHaveBeenCalled();
   });
 });

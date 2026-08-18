@@ -5,6 +5,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
+  HttpException,
 } from '@nestjs/common';
 import type { ICowRepository } from './infra/cow.repository';
 import { CreateCowDto } from './dto/create-cow.dto';
@@ -22,6 +23,9 @@ import {
 } from './cow.mapper';
 import { SynchronizeDto } from './dto/synchronize.dto';
 import { CowUpdateData } from './infra/cow.repository';
+import { OverrideBodyConditionScoreDto } from './dto/override-body-condition-score.dto';
+import { BcsScore } from './bcs-score.constants';
+import { BodyConditionScore } from './body-condition-score.entity';
 
 @Injectable()
 export class CowService {
@@ -77,9 +81,10 @@ export class CowService {
     createCowDto: CreateCowDto,
     userId: string,
   ): Promise<CowResponseDto> {
-    const existingCow = await this.cowRepository.findByTagNumberIncludingDeleted(
-      createCowDto.tagNumber,
-    );
+    const existingCow =
+      await this.cowRepository.findByTagNumberIncludingDeleted(
+        createCowDto.tagNumber,
+      );
 
     if (existingCow) {
       // Si la vaca existe pero está borrada, la restauramos
@@ -207,6 +212,43 @@ export class CowService {
 
   async deleteBcs(bcsId: string, userId: string): Promise<void> {
     return this.cowRepository.deleteBcs(bcsId, userId);
+  }
+
+  async overrideBcs(
+    bcsId: string,
+    userId: string,
+    overrideDto: OverrideBodyConditionScoreDto,
+  ): Promise<BodyConditionScoreResponseDto> {
+    const bcs = await this.cowRepository.overrideBcs(
+      bcsId,
+      userId,
+      overrideDto.score,
+      overrideDto.reason,
+    );
+    return this.requireMappedBcs(bcs);
+  }
+
+  async revertBcsOverride(
+    bcsId: string,
+    userId: string,
+  ): Promise<BodyConditionScoreResponseDto> {
+    const bcs = await this.cowRepository.revertBcsOverride(bcsId, userId);
+    return this.requireMappedBcs(bcs);
+  }
+
+  async applyProfessionalRecommendation(
+    bcsId: string,
+    producerId: string,
+    score: BcsScore,
+    reviewId: string,
+  ): Promise<BodyConditionScoreResponseDto> {
+    const bcs = await this.cowRepository.applyProfessionalRecommendation(
+      bcsId,
+      producerId,
+      score,
+      reviewId,
+    );
+    return this.requireMappedBcs(bcs);
   }
 
   async getOwnershipHistory(
@@ -343,11 +385,31 @@ export class CowService {
     return { ...result, data };
   }
 
-  private handleDbError(error: any): never {
-    if (error.code === '23505') {
+  private handleDbError(error: unknown): never {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === '23505'
+    ) {
       throw new ConflictException('A cow with this tag number already exists');
     }
+    if (error instanceof HttpException) {
+      throw error;
+    }
     throw new InternalServerErrorException('Unexpected error occurred');
+  }
+
+  private requireMappedBcs(
+    bcs: BodyConditionScore,
+  ): BodyConditionScoreResponseDto {
+    const mappedBcs = bcsMapperToResponseDto(bcs);
+    if (!mappedBcs) {
+      throw new InternalServerErrorException(
+        'Error mapping body condition score',
+      );
+    }
+    return mappedBcs;
   }
 
   private toEpochMs(value?: number): number | null {

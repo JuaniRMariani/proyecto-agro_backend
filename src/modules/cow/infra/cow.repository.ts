@@ -5,6 +5,7 @@ import { CreateCowDto } from '../dto/create-cow.dto';
 import { UpdateCowDto } from '../dto/update-cow.dto';
 import { CreateBodyConditionScoreDto } from '../dto/create-body-condition-score.dto';
 import { SyncBodyConditionScoreDto } from '../dto/synchronize.dto';
+import { BcsScore } from '../bcs-score.constants';
 
 export type CowUpdateData = Partial<UpdateCowDto> & {
   deleted?: boolean;
@@ -40,5 +41,18 @@ export interface ICowRepository {
   ): Promise<{ bcs: BodyConditionScore; created: boolean }>;
   findBcsHistory(cowId: string, userId: string): Promise<BodyConditionScore[]>;
   deleteBcs(bcsId: string, userId: string): Promise<void>;
+  overrideBcs(
+    bcsId: string,
+    userId: string,
+    score: BcsScore,
+    reason: string,
+  ): Promise<BodyConditionScore>;
+  revertBcsOverride(bcsId: string, userId: string): Promise<BodyConditionScore>;
+  applyProfessionalRecommendation(
+    bcsId: string,
+    producerId: string,
+    score: BcsScore,
+    reviewId: string,
+  ): Promise<BodyConditionScore>;
   findOwnershipHistory(cowId: string): Promise<CowOwnershipHistory[]>;
 }

@@ -6,11 +6,31 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 import { UserService } from './user.service';
 import { IUserRepository } from './infra/user.repository';
+import { AccountRole } from './account-role.enum';
+import { User } from './user.entity';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
   compare: jest.fn(),
 }));
+
+const hashPassword = bcrypt.hash as unknown as jest.MockedFunction<
+  (plainText: string, rounds: number) => Promise<string>
+>;
+
+function makeUser(partial: Partial<User> = {}): User {
+  return Object.assign(new User(), {
+    id: 'user-1',
+    fullName: 'Test User',
+    email: 'test@example.com',
+    password: 'hashed',
+    role: AccountRole.PRODUCER,
+    cows: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...partial,
+  });
+}
 
 describe('UserService', () => {
   let service: UserService;
@@ -50,13 +70,8 @@ describe('UserService', () => {
   });
 
   it('creates a user with hashed password', async () => {
-    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
-    userRepository.create.mockResolvedValue({
-      id: 'user-1',
-      fullName: 'Test User',
-      email: 'test@example.com',
-      password: 'hashed',
-    } as any);
+    hashPassword.mockResolvedValue('hashed');
+    userRepository.create.mockResolvedValue(makeUser());
 
     const result = await service.createUser({
       fullName: 'Test User',
@@ -65,17 +80,20 @@ describe('UserService', () => {
       passwordConfirmation: 'plain',
     });
 
-    expect(bcrypt.hash).toHaveBeenCalledWith('plain', 10);
-    expect(userRepository.create).toHaveBeenCalledWith({
-      fullName: 'Test User',
-      email: 'test@example.com',
-      password: 'hashed',
-      passwordConfirmation: 'plain',
-    });
+    expect(hashPassword.mock.calls).toContainEqual(['plain', 10]);
+    expect(userRepository.create.mock.calls).toContainEqual([
+      {
+        fullName: 'Test User',
+        email: 'test@example.com',
+        password: 'hashed',
+        role: AccountRole.PRODUCER,
+      },
+    ]);
     expect(result).toEqual({
       id: 'user-1',
       fullName: 'Test User',
       email: 'test@example.com',
+      role: AccountRole.PRODUCER,
     });
   });
 
@@ -104,49 +122,63 @@ describe('UserService', () => {
   });
 
   it('hashes password on update', async () => {
-    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
-    userRepository.update.mockResolvedValue({
-      id: 'user-1',
-      fullName: 'Updated User',
-      email: 'test@example.com',
-    } as any);
+    hashPassword.mockResolvedValue('hashed');
+    userRepository.update.mockResolvedValue(
+      makeUser({ fullName: 'Updated User' }),
+    );
 
     await service.updateUser('user-1', { password: 'newpass' });
 
-    expect(bcrypt.hash).toHaveBeenCalledWith('newpass', 10);
-    expect(userRepository.update).toHaveBeenCalledWith('user-1', {
-      password: 'hashed',
-    });
+    expect(hashPassword.mock.calls).toContainEqual(['newpass', 10]);
+    expect(userRepository.update.mock.calls).toContainEqual([
+      'user-1',
+      { password: 'hashed' },
+    ]);
   });
 
-  it('throws when getUserByEmail returns null', async () => {
+  it('returns null when getUserByEmail does not exist', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
-    await expect(service.getUserByEmail('missing@example.com')).rejects.toThrow(
-      'Usuario no encontrado',
-    );
+    await expect(
+      service.getUserByEmail('missing@example.com'),
+    ).resolves.toBeNull();
   });
 
   it('changes password with hashing', async () => {
-    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
+    hashPassword.mockResolvedValue('hashed');
     await service.changePassword('user-1', 'newpass');
-    expect(bcrypt.hash).toHaveBeenCalledWith('newpass', 10);
-    expect(userRepository.changePassword).toHaveBeenCalledWith(
+    expect(hashPassword.mock.calls).toContainEqual(['newpass', 10]);
+    expect(userRepository.changePassword.mock.calls).toContainEqual([
       'user-1',
       'hashed',
-    );
+    ]);
   });
 
   it('returns mapped users from getAllUsers', async () => {
     userRepository.findAll.mockResolvedValue([
-      { id: 'user-1', fullName: 'Test', email: 't@example.com' },
-      { id: 'user-2', fullName: 'Test2', email: 't2@example.com' },
-    ] as any);
+      makeUser({ fullName: 'Test', email: 't@example.com' }),
+      makeUser({
+        id: 'user-2',
+        fullName: 'Test2',
+        email: 't2@example.com',
+        role: AccountRole.VETERINARIAN,
+      }),
+    ]);
 
     const result = await service.getAllUsers();
 
     expect(result).toEqual([
-      { id: 'user-1', fullName: 'Test', email: 't@example.com' },
-      { id: 'user-2', fullName: 'Test2', email: 't2@example.com' },
+      {
+        id: 'user-1',
+        fullName: 'Test',
+        email: 't@example.com',
+        role: AccountRole.PRODUCER,
+      },
+      {
+        id: 'user-2',
+        fullName: 'Test2',
+        email: 't2@example.com',
+        role: AccountRole.VETERINARIAN,
+      },
     ]);
   });
 
@@ -157,13 +189,21 @@ describe('UserService', () => {
 
   it('deletes user', async () => {
     await service.deleteUser('user-1');
-    expect(userRepository.delete).toHaveBeenCalledWith('user-1');
+    expect(userRepository.delete.mock.calls).toContainEqual(['user-1']);
   });
 
-  it('throws when getUserByEmailWithPassword returns null', async () => {
+  it('returns conflict when account history prevents deletion', async () => {
+    userRepository.delete.mockRejectedValue({ code: '23503' });
+
+    await expect(service.deleteUser('user-1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+  });
+
+  it('returns null when getUserByEmailWithPassword does not exist', async () => {
     userRepository.findByEmailWithPassword.mockResolvedValue(null);
     await expect(
       service.getUserByEmailWithPassword('missing@example.com'),
-    ).rejects.toThrow('Las credenciales ingresadas son incorrectas');
+    ).resolves.toBeNull();
   });
 });

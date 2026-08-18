@@ -13,6 +13,7 @@ export function authMapperToResponseDto(
       id: userData.id,
       fullName: userData.fullName,
       email: userData.email,
+      role: userData.role,
     },
   });
 }

@@ -122,11 +122,10 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 - `POST /auth/reset-password` - Reset password
 
 ### Users
-- `GET /users` - Get all users
-- `GET /users/:id` - Get user by ID
-- `POST /users` - Create user
-- `PUT /users/:id` - Update user
-- `DELETE /users/:id` - Delete user
+- `GET /user` - Get the authenticated profile
+- `GET /user/:id` - Get the profile only when `id` is the authenticated user
+- `PUT /user` - Update the authenticated profile (account role is immutable)
+- `DELETE /user/:id` - Delete only the authenticated profile
 
 ### Cows
 - `GET /cows` - Get all cows for authenticated user
@@ -141,6 +140,30 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 - `POST /cows/:id/bcs` - Add body condition score
 - `GET /cows/:id/bcs` - Get body condition score history
 - `DELETE /cows/bcs/:bcsId` - Delete body condition score
+- `PATCH /cows/bcs/:bcsId/override` - Override the effective score while preserving the model score
+- `DELETE /cows/bcs/:bcsId/override` - Restore the immutable model score
+
+### Professional access
+
+- `POST /professional-access/requests` - Producer requests access by professional email
+- `GET /professional-access` - Producer lists professional relationships
+- `GET /professional-access/requests` - Professional lists pending requests
+- `POST /professional-access/:id/accept` - Professional accepts a request
+- `POST /professional-access/:id/reject` - Professional rejects a request
+- `DELETE /professional-access/:id` - Producer revokes a relationship
+- `GET /professional-access/clients` - Professional lists active clients
+- `GET /professional-access/clients/:producerId/cows` - Read-only client cows and BCS results
+
+### Professional reviews
+
+- `POST /professional-reviews` - Professional creates a draft or published review for an accessible result
+- `GET /professional-reviews` - Producer lists own published reviews; professional lists own authored reviews
+- `PATCH /professional-reviews/:id` - Author edits or publishes a review
+- `POST /professional-reviews/:id/apply-score` - Producer applies a published suggested score
+
+### Current tenancy boundary
+
+Until farms are introduced as first-class tenants, each `producer` account represents one field/tenant. Cows and BCS results remain owned by that producer's `userId`. A veterinarian or professional can only read another producer's data through an `active` professional-access relationship. Access never transfers ownership and never enables edits to client cattle or results. All cross-account lookups return a not-found response when the relationship or ownership check fails.
 
 ### Cow Data Structure
 

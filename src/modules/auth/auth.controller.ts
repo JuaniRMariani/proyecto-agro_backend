@@ -9,6 +9,7 @@ import { SendCodeDto } from './dto/send-code.dto';
 import { VerifyCodeDto } from './dto/verify-code.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedRequest } from '../../common/auth/authenticated-request.interface';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -40,8 +41,8 @@ export class AuthController {
   @ApiOkResponse({
     schema: { example: { message: 'Usuario deslogeado exitosamente' } },
   })
-  async logout(@Request() req): Promise<void> {
-    const token = req.headers.authorization?.split(' ')[1];
+  async logout(@Request() request: AuthenticatedRequest): Promise<void> {
+    const token = request.headers.authorization?.split(' ')[1];
     return this.authService.logout(token);
   }
 

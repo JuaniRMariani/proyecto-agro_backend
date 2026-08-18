@@ -7,6 +7,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './modules/user/user.module';
 import { CowModule } from './modules/cow/cow.module';
 import { ImageModule } from './modules/image/image.module';
+import { ProfessionalAccessModule } from './modules/professional-access/professional-access.module';
+import { ProfessionalReviewModule } from './modules/professional-reviews/professional-review.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { ImageModule } from './modules/image/image.module';
     AuthModule,
     CowModule,
     ImageModule,
+    ProfessionalAccessModule,
+    ProfessionalReviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],

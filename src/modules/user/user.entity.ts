@@ -4,8 +4,10 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   OneToMany,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Cow } from '../cow/cow.entity';
+import { AccountRole } from './account-role.enum';
 
 @Entity()
 export class User {
@@ -18,6 +20,14 @@ export class User {
   @Column({ unique: true })
   email: string;
 
+  @Column({
+    type: 'enum',
+    enum: AccountRole,
+    enumName: 'user_account_role_enum',
+    default: AccountRole.PRODUCER,
+  })
+  role: AccountRole;
+
   @Column({ select: false })
   password: string;
 
@@ -27,12 +37,12 @@ export class User {
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
   @Column({ nullable: true, select: false })
-  resetPasswordToken: string;
+  resetPasswordToken: string | null;
 
   @CreateDateColumn({ type: 'timestamp', nullable: true, select: false })
-  resetPasswordExpires: Date;
+  resetPasswordExpires: Date | null;
 }

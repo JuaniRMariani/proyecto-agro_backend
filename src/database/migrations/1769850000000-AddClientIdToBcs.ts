@@ -13,9 +13,7 @@ export class AddClientIdToBcs1769850000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `DROP INDEX "IDX_body_condition_scores_clientId"`,
-    );
+    await queryRunner.query(`DROP INDEX "IDX_body_condition_scores_clientId"`);
     await queryRunner.query(
       `ALTER TABLE "body_condition_scores" DROP COLUMN "clientId"`,
     );

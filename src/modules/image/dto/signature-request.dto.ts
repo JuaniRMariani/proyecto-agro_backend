@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsUUID } from 'class-validator';
 
 export class SignatureRequestDto {
   @ApiPropertyOptional({
@@ -12,7 +12,8 @@ export class SignatureRequestDto {
 
   @ApiPropertyOptional({
     example: 'client-uuid-123',
-    description: 'The client-generated UUID for the score (preferred for offline-first)',
+    description:
+      'The client-generated UUID for the score (preferred for offline-first)',
   })
   @IsOptional()
   @IsUUID('4', { message: 'Client ID must be a valid UUID' })
