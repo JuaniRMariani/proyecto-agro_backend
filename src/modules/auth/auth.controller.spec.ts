@@ -4,17 +4,15 @@ import { AccountRole } from '../user/account-role.enum';
 import { AuthController } from './auth.controller';
 import type { AuthResponseDto } from './dto/auth-response.dto';
 import { AuthService } from './auth.service';
+import { PasswordResetRequestResponseDto } from './password-reset/dto/password-reset-response.dto';
+import { PasswordResetVerifyResponseDto } from './password-reset/dto/password-reset-response.dto';
+import { PasswordResetService } from './password-reset/password-reset.service';
 
 type AuthServiceMock = jest.Mocked<
-  Pick<
-    AuthService,
-    | 'login'
-    | 'register'
-    | 'logout'
-    | 'sendCode'
-    | 'verifyCode'
-    | 'resetPassword'
-  >
+  Pick<AuthService, 'login' | 'register' | 'logout'>
+>;
+type PasswordResetServiceMock = jest.Mocked<
+  Pick<PasswordResetService, 'requestReset' | 'verifyReset' | 'confirmReset'>
 >;
 
 const authResponse: AuthResponseDto = {
@@ -26,8 +24,7 @@ const authResponse: AuthResponseDto = {
     role: AccountRole.PRODUCER,
   },
 };
-
-const authenticatedRequest: AuthenticatedRequest = {
+const request: AuthenticatedRequest = {
   headers: { authorization: 'Bearer token' },
   user: {
     userId: authResponse.user.id,
@@ -39,77 +36,72 @@ const authenticatedRequest: AuthenticatedRequest = {
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: AuthServiceMock;
+  let passwordResetService: PasswordResetServiceMock;
 
   beforeEach(async () => {
     authService = {
       login: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
-      sendCode: jest.fn(),
-      verifyCode: jest.fn(),
-      resetPassword: jest.fn(),
     };
-
+    passwordResetService = {
+      requestReset: jest.fn(),
+      verifyReset: jest.fn(),
+      confirmReset: jest.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: authService }],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        { provide: PasswordResetService, useValue: passwordResetService },
+      ],
     }).compile();
-
-    controller = module.get<AuthController>(AuthController);
+    controller = module.get(AuthController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
-  it('logs in user', async () => {
+  it('delegates login and registration', async () => {
     authService.login.mockResolvedValue(authResponse);
+    authService.register.mockResolvedValue(authResponse);
 
     await expect(
       controller.login({ email: 't@example.com', password: 'pass' }),
     ).resolves.toEqual(authResponse);
-  });
-
-  it('registers user', async () => {
-    authService.register.mockResolvedValue(authResponse);
-
     await expect(
       controller.register({
         fullName: 'Test',
         email: 't@example.com',
-        password: 'pass',
-        passwordConfirmation: 'pass',
+        password: 'pass12',
+        passwordConfirmation: 'pass12',
       }),
     ).resolves.toEqual(authResponse);
   });
 
-  it('logs out user', async () => {
-    await controller.logout(authenticatedRequest);
+  it('delegates logout with bearer token', async () => {
+    await controller.logout(request);
     expect(authService.logout.mock.calls).toContainEqual(['token']);
   });
 
-  it('sends code', async () => {
-    await controller.sendCode({ email: 't@example.com' });
-    expect(authService.sendCode.mock.calls).toContainEqual(['t@example.com']);
-  });
+  it('exposes the three-step password reset contract', async () => {
+    const requestId = '22222222-2222-4222-8222-222222222222';
+    passwordResetService.requestReset.mockResolvedValue(
+      new PasswordResetRequestResponseDto(requestId),
+    );
+    passwordResetService.verifyReset.mockResolvedValue(
+      new PasswordResetVerifyResponseDto('reset-token'),
+    );
 
-  it('verifies code', async () => {
-    authService.verifyCode.mockResolvedValue({ valid: true });
-    await expect(controller.verifyCode({ code: '123456' })).resolves.toEqual({
-      valid: true,
+    await expect(
+      controller.requestPasswordReset({ email: 't@example.com' }),
+    ).resolves.toEqual({ requestId });
+    await expect(
+      controller.verifyPasswordReset({ requestId, code: '123456' }),
+    ).resolves.toEqual({ resetToken: 'reset-token' });
+    await controller.confirmPasswordReset({
+      requestId,
+      resetToken: 'reset-token',
+      password: 'newpass',
+      passwordConfirmation: 'newpass',
     });
-  });
-
-  it('resets password', async () => {
-    await controller.resetPassword({
-      code: '123456',
-      password: 'pass',
-      passwordConfirmation: 'pass',
-    });
-    expect(authService.resetPassword.mock.calls).toContainEqual([
-      '123456',
-      'pass',
-      'pass',
-    ]);
+    expect(passwordResetService.confirmReset.mock.calls).toHaveLength(1);
   });
 });

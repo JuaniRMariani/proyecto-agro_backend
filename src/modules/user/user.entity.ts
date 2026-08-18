@@ -28,6 +28,9 @@ export class User {
   })
   role: AccountRole;
 
+  @Column({ type: 'integer', default: 0 })
+  tokenVersion: number;
+
   @Column({ select: false })
   password: string;
 
@@ -39,10 +42,4 @@ export class User {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
-
-  @Column({ nullable: true, select: false })
-  resetPasswordToken: string | null;
-
-  @CreateDateColumn({ type: 'timestamp', nullable: true, select: false })
-  resetPasswordExpires: Date | null;
 }

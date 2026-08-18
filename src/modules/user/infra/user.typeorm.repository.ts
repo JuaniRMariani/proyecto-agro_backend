@@ -24,12 +24,20 @@ export class UserTypeOrmRepository implements IUserRepository {
   }
 
   async update(id: string, user: Partial<UpdateUserDto>): Promise<User> {
-    const existingUser = await this.typeOrmRepo.findOneBy({ id });
-    if (!existingUser) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-    this.typeOrmRepo.merge(existingUser, user);
-    return await this.typeOrmRepo.save(existingUser);
+    return this.typeOrmRepo.manager.transaction(async (manager) => {
+      const existingUser = await manager.findOne(User, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!existingUser) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+      manager.merge(User, existingUser, user);
+      if (user.password !== undefined) {
+        existingUser.tokenVersion += 1;
+      }
+      return manager.save(User, existingUser);
+    });
   }
 
   async delete(id: string): Promise<void> {
@@ -49,33 +57,6 @@ export class UserTypeOrmRepository implements IUserRepository {
   }
 
   async changePassword(id: string, newPassword: string): Promise<void> {
-    await this.typeOrmRepo.update(id, { password: newPassword });
-  }
-
-  async saveVerificationCode(
-    id: string,
-    code: string,
-    expiration: Date,
-  ): Promise<void> {
-    await this.typeOrmRepo.update(id, {
-      resetPasswordToken: code,
-      resetPasswordExpires: expiration,
-    });
-  }
-
-  async clearVerificationCode(id: string): Promise<void> {
-    await this.typeOrmRepo.update(id, {
-      resetPasswordToken: null,
-      resetPasswordExpires: null,
-    });
-  }
-
-  async findByVerificationCode(code: string): Promise<User | null> {
-    const currentTime = new Date();
-    return await this.typeOrmRepo
-      .createQueryBuilder('user')
-      .where('user.resetPasswordToken = :code', { code })
-      .andWhere('user.resetPasswordExpires > :currentTime', { currentTime })
-      .getOne();
+    await this.update(id, { password: newPassword });
   }
 }

@@ -46,9 +46,6 @@ describe('UserService', () => {
       findByEmail: jest.fn(),
       findByEmailWithPassword: jest.fn(),
       changePassword: jest.fn(),
-      saveVerificationCode: jest.fn(),
-      clearVerificationCode: jest.fn(),
-      findByVerificationCode: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -74,8 +71,8 @@ describe('UserService', () => {
     userRepository.create.mockResolvedValue(makeUser());
 
     const result = await service.createUser({
-      fullName: 'Test User',
-      email: 'test@example.com',
+      fullName: '  Test User  ',
+      email: ' TEST@EXAMPLE.COM ',
       password: 'plain',
       passwordConfirmation: 'plain',
     });
@@ -185,6 +182,12 @@ describe('UserService', () => {
   it('returns null when getUserById does not exist', async () => {
     userRepository.findById.mockResolvedValue(null);
     await expect(service.getUserById('missing')).resolves.toBeNull();
+  });
+
+  it('returns tokenVersion for JWT revocation checks', async () => {
+    userRepository.findById.mockResolvedValue(makeUser({ tokenVersion: 4 }));
+
+    await expect(service.getUserTokenVersion('user-1')).resolves.toBe(4);
   });
 
   it('deletes user', async () => {

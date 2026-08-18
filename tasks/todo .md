@@ -51,3 +51,23 @@ Proveer contratos autenticados y seguros para roles de cuenta, vínculos revocab
 ## Revisión
 
 La implementación conserva el score original del modelo aun cuando el productor lo corrige o acepta una recomendación. El backend vuelve a validar propiedad y acceso activo en cada operación, evita que una recomendación aplicada cambie retroactivamente y prueba el aislamiento entre productores/profesionales. No se ejecutaron migraciones contra una base externa porque el entorno no dispone de PostgreSQL efímero/Docker; las migraciones se validaron mediante tests de contrato SQL y build.
+
+---
+
+## Recuperación segura de contraseña
+
+- [x] Reemplazar el código global legacy por challenges vinculados a un `requestId`.
+- [x] Responder con el mismo contrato para correos existentes e inexistentes y mitigar diferencias temporales.
+- [x] Generar código/token con CSPRNG y almacenar únicamente hashes HMAC separados por propósito.
+- [x] Limitar reenvíos e intentos; expirar y consumir challenges una sola vez.
+- [x] Cambiar contraseña, consumir el challenge e incrementar `tokenVersion` atómicamente.
+- [x] Revocar JWT previos también al cambiar la contraseña desde el perfil.
+- [x] Exigir nombre en registro, normalizar correos y respetar el límite bcrypt de 72 bytes UTF-8.
+- [x] Añadir migración, Swagger y pruebas de expiración, intentos, concurrencia y single-use.
+- [x] Ejecutar ESLint, typecheck, Jest y build antes de publicar.
+
+### Revisión
+
+El flujo legacy inseguro fue reemplazado por `request → verify → confirm`. Los secretos no se almacenan en claro, el cooldown se serializa por correo en PostgreSQL y cada verificación/confirmación se consume una sola vez. El cambio de clave invalida las sesiones JWT emitidas anteriormente. El throttling HTTP queda seguro por defecto con `TRUST_PROXY_HOPS=0`; cada despliegue detrás de proxy debe configurar el número exacto de saltos. Para múltiples réplicas se documentó almacenamiento distribuido de throttling y outbox de correo como evolución operativa.
+
+Verificación final: ESLint sin hallazgos, TypeScript OK, build OK y Jest con 21 suites/119 tests aprobados. `git diff --check` no reportó errores.

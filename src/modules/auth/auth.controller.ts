@@ -1,37 +1,51 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { CreateUserDto } from '../user/dto/create-user.dto';
-import { AuthResponseDto } from './dto/auth-response.dto';
-import { LoginUserDto } from './dto/login-user.dto';
-import { ResponseMessage } from 'src/common/decorators/response-message.decorator';
-import { SendCodeDto } from './dto/send-code.dto';
-import { VerifyCodeDto } from './dto/verify-code.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedRequest } from '../../common/auth/authenticated-request.interface';
+import { ResponseMessage } from '../../common/decorators/response-message.decorator';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { AuthService } from './auth.service';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { LoginUserDto } from './dto/login-user.dto';
+import { ConfirmPasswordResetDto } from './password-reset/dto/confirm-password-reset.dto';
+import {
+  PasswordResetRequestResponseDto,
+  PasswordResetVerifyResponseDto,
+} from './password-reset/dto/password-reset-response.dto';
+import { RequestPasswordResetDto } from './password-reset/dto/request-password-reset.dto';
+import { VerifyPasswordResetDto } from './password-reset/dto/verify-password-reset.dto';
+import { PasswordResetService } from './password-reset/password-reset.service';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 @ApiTags('auth')
 export class AuthController {
-  private authService: AuthService;
-
-  constructor(authService: AuthService) {
-    this.authService = authService;
-  }
+  constructor(
+    private readonly authService: AuthService,
+    private readonly passwordResetService: PasswordResetService,
+  ) {}
 
   @ResponseMessage('Usuario logueado exitosamente')
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOkResponse({ type: AuthResponseDto })
-  async login(@Body() loginData: LoginUserDto): Promise<AuthResponseDto> {
-    const userLogged = await this.authService.login(loginData);
-    return userLogged;
+  login(@Body() loginData: LoginUserDto): Promise<AuthResponseDto> {
+    return this.authService.login(loginData);
   }
 
   @ResponseMessage('Usuario registrado exitosamente')
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60 * 60_000 } })
   @ApiCreatedResponse({ type: AuthResponseDto })
-  async register(@Body() userData: CreateUserDto): Promise<AuthResponseDto> {
+  register(@Body() userData: CreateUserDto): Promise<AuthResponseDto> {
     return this.authService.register(userData);
   }
 
@@ -41,37 +55,43 @@ export class AuthController {
   @ApiOkResponse({
     schema: { example: { message: 'Usuario deslogeado exitosamente' } },
   })
-  async logout(@Request() request: AuthenticatedRequest): Promise<void> {
+  logout(@Request() request: AuthenticatedRequest): Promise<void> {
     const token = request.headers.authorization?.split(' ')[1];
     return this.authService.logout(token);
   }
 
-  @ResponseMessage('Token de acceso renovado exitosamente')
-  @Post('send-code')
-  @ApiOkResponse({
-    schema: { example: { message: 'Token de acceso renovado exitosamente' } },
-  })
-  async sendCode(@Body() body: SendCodeDto): Promise<void> {
-    return this.authService.sendCode(body.email);
+  @ResponseMessage(
+    'Si el correo esta registrado, recibiras un codigo de recuperacion',
+  )
+  @Post('password-reset/request')
+  @Throttle({ default: { limit: 3, ttl: 10 * 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: PasswordResetRequestResponseDto })
+  requestPasswordReset(
+    @Body() body: RequestPasswordResetDto,
+  ): Promise<PasswordResetRequestResponseDto> {
+    return this.passwordResetService.requestReset(body);
   }
 
-  @ResponseMessage('Código verificado exitosamente')
-  @Post('verify-code')
-  @ApiOkResponse({ schema: { example: { valid: true } } })
-  async verifyCode(@Body() body: VerifyCodeDto): Promise<{ valid: boolean }> {
-    return this.authService.verifyCode(body.code);
+  @ResponseMessage('Codigo verificado exitosamente')
+  @Post('password-reset/verify')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: PasswordResetVerifyResponseDto })
+  verifyPasswordReset(
+    @Body() body: VerifyPasswordResetDto,
+  ): Promise<PasswordResetVerifyResponseDto> {
+    return this.passwordResetService.verifyReset(body);
   }
 
-  @ResponseMessage('Contraseña restablecida exitosamente')
-  @Post('reset-password')
+  @ResponseMessage('Contrasena restablecida exitosamente')
+  @Post('password-reset/confirm')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
-    schema: { example: { message: 'ContraseÃ±a restablecida exitosamente' } },
+    schema: { example: { message: 'Contrasena restablecida exitosamente' } },
   })
-  async resetPassword(@Body() body: ResetPasswordDto): Promise<void> {
-    return this.authService.resetPassword(
-      body.code,
-      body.password,
-      body.passwordConfirmation,
-    );
+  confirmPasswordReset(@Body() body: ConfirmPasswordResetDto): Promise<void> {
+    return this.passwordResetService.confirmReset(body);
   }
 }

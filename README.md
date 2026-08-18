@@ -117,9 +117,19 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 ### Authentication
 - `POST /auth/login` - User login
 - `POST /auth/register` - User registration
-- `POST /auth/send-code` - Send verification code
-- `POST /auth/verify-code` - Verify code
-- `POST /auth/reset-password` - Reset password
+- `POST /auth/password-reset/request` - Request password recovery without revealing account existence
+- `POST /auth/password-reset/verify` - Verify the six-digit challenge and obtain a one-use reset token
+- `POST /auth/password-reset/confirm` - Change the password and revoke existing JWTs
+
+Password recovery uses a PostgreSQL-backed cooldown and attempt counter as the
+authoritative protection across replicas. HTTP throttling is in-memory per
+instance; distributed deployments should add a shared Throttler storage. Set
+`TRUST_PROXY_HOPS` to the exact reverse-proxy hop count (secure default `0`;
+set `1` only when there is exactly one trusted proxy). The fixed response delay reduces timing
+differences, but a durable email outbox is the recommended next step for
+stronger timing uniformity and delivery retries.
+Expired and consumed challenge rows should be removed by the deployment's
+scheduled retention job.
 
 ### Users
 - `GET /user` - Get the authenticated profile

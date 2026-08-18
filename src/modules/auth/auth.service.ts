@@ -5,54 +5,52 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserResponseDto } from '../user/dto/user-response.dto';
-import { CreateUserDto } from '../user/dto/create-user.dto';
-import { LoginUserDto } from './dto/login-user.dto';
-import { AuthResponseDto } from './dto/auth-response.dto';
-import { authMapperToResponseDto } from './auth.mapper';
-import { User } from '../user/user.entity';
 import * as bcrypt from 'bcrypt';
-import { EmailService } from './emailer/email.service';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { UserResponseDto } from '../user/dto/user-response.dto';
+import { User } from '../user/user.entity';
+import { UserService } from '../user/user.service';
+import { authMapperToResponseDto } from './auth.mapper';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { LoginUserDto } from './dto/login-user.dto';
+import { assertBcryptPasswordLength } from '../../common/validation/password-byte-length.validator';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
-    private jwtService: JwtService,
-    private emailService: EmailService,
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async login(userCredentials: LoginUserDto): Promise<AuthResponseDto> {
     const user = await this.validateUser(
-      userCredentials.email,
+      userCredentials.email.trim().toLowerCase(),
       userCredentials.password,
     );
     if (!user) {
-      throw new NotFoundException('Credenciales inválidas');
+      throw new NotFoundException('Credenciales invalidas');
     }
-    const accessToken = this.getAccessToken(user);
+    const accessToken = this.getAccessToken(user, user.tokenVersion);
     const mappedAuthResponse = authMapperToResponseDto(user, accessToken);
     if (!mappedAuthResponse) {
       throw new ConflictException(
-        'Error al mapear la respuesta de autenticación',
+        'Error al mapear la respuesta de autenticacion',
       );
     }
     return mappedAuthResponse;
   }
 
   async register(userData: CreateUserDto): Promise<AuthResponseDto> {
+    assertBcryptPasswordLength(userData.password);
     if (userData.password !== userData.passwordConfirmation) {
-      throw new BadRequestException('Las contraseñas no coinciden');
+      throw new BadRequestException('Las contrasenas no coinciden');
     }
     const newUser = await this.userService.createUser(userData);
-    const accessToken = this.getAccessToken(newUser);
-    const mappedAuthResponse = new AuthResponseDto({
-      accessToken,
-      user: newUser,
-    });
-    return mappedAuthResponse;
+    const tokenVersion =
+      (await this.userService.getUserTokenVersion(newUser.id)) ?? 0;
+    const accessToken = this.getAccessToken(newUser, tokenVersion);
+    return new AuthResponseDto({ accessToken, user: newUser });
   }
 
   async logout(tokenToInvalidate: string | undefined): Promise<void> {
@@ -62,71 +60,23 @@ export class AuthService {
     await this.jwtService.decode(tokenToInvalidate);
   }
 
-  async sendCode(email: string): Promise<void> {
-    const user = await this.userService.getUserByEmail(email);
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
-    const verificationCode = await this.generateVerificationCode(user.id);
-    await this.emailService.sendVerificationCode(email, verificationCode);
-  }
-
-  async verifyCode(code: string): Promise<{ valid: boolean }> {
-    const user = await this.userService.findByVerificationCode(code);
-    if (!user) {
-      throw new BadRequestException('Código inválido o expirado');
-    }
-    return { valid: true };
-  }
-
-  async resetPassword(
-    code: string,
-    newPassword: string,
-    passwordConfirmation: string,
-  ): Promise<void> {
-    if (newPassword !== passwordConfirmation) {
-      throw new BadRequestException('Las contraseñas no coinciden');
-    }
-
-    const user = await this.userService.findByVerificationCode(code);
-    if (!user) {
-      throw new BadRequestException('Código inválido o expirado');
-    }
-
-    await this.userService.changePassword(user.id, newPassword);
-    await this.userService.clearVerificationCode(user.id);
-  }
-
   private async validateUser(
-    username: string,
-    pass: string,
+    email: string,
+    password: string,
   ): Promise<User | null> {
-    const user = await this.userService.getUserByEmailWithPassword(username);
-    if (user && (await this.comparePasswords(pass, user.password))) {
+    const user = await this.userService.getUserByEmailWithPassword(email);
+    if (user && (await bcrypt.compare(password, user.password))) {
       return user;
     }
     return null;
   }
 
-  private getAccessToken(user: UserResponseDto): string {
-    const payload = { email: user.email, role: user.role, sub: user.id };
-    return this.jwtService.sign(payload);
-  }
-
-  private async comparePasswords(
-    plainTextPassword: string,
-    hashedPassword: string,
-  ): Promise<boolean> {
-    return await bcrypt.compare(plainTextPassword, hashedPassword);
-  }
-
-  private async generateVerificationCode(userId: string): Promise<string> {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.userService.saveVerificationCode(
-      userId,
-      code,
-      new Date(Date.now() + 10 * 60 * 1000),
-    ); // Código válido por 10 minutos
-    return code;
+  private getAccessToken(user: UserResponseDto, tokenVersion: number): string {
+    return this.jwtService.sign({
+      email: user.email,
+      role: user.role,
+      sub: user.id,
+      version: tokenVersion,
+    });
   }
 }

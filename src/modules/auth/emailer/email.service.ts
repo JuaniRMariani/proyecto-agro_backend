@@ -32,7 +32,7 @@ export class EmailService {
     this.htmlTemplate = fs.readFileSync(templatePath, 'utf-8');
   }
 
-  async sendVerificationCode(email: string, code: string): Promise<void> {
+  async sendPasswordResetCode(email: string, code: string): Promise<void> {
     const htmlContent = this.htmlTemplate.replace('{{CODE}}', code);
 
     await this.transporter.sendMail({

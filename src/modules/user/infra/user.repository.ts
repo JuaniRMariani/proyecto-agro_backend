@@ -11,11 +11,4 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<User | null>;
   findByEmailWithPassword(email: string): Promise<User | null>;
   changePassword(id: string, newPassword: string): Promise<void>;
-  saveVerificationCode(
-    id: string,
-    code: string,
-    expiration: Date,
-  ): Promise<void>;
-  clearVerificationCode(id: string): Promise<void>;
-  findByVerificationCode(code: string): Promise<User | null>;
 }

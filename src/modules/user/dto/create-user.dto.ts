@@ -9,16 +9,24 @@
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AccountRole } from '../account-role.enum';
+import { Transform } from 'class-transformer';
+import { MaxBcryptPasswordBytes } from '../../../common/validation/password-byte-length.validator';
+import {
+  normalizeEmailTransform,
+  trimStringTransform,
+} from '../../../common/transforms/normalize-string.transform';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'user@example.com' })
+  @Transform(normalizeEmailTransform)
   @IsEmail({}, { message: 'El correo electrÃ³nico no es vÃ¡lido' })
   @IsNotEmpty({ message: 'El correo electrÃ³nico es obligatorio' })
   email: string;
 
-  @ApiPropertyOptional({ example: 'Juan Perez' })
-  @IsOptional()
+  @ApiProperty({ example: 'Juan Perez' })
+  @Transform(trimStringTransform)
   @IsString({ message: 'El nombre completo debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El nombre completo es obligatorio' })
   @MaxLength(100, {
     message: 'El nombre completo no puede exceder los 100 caracteres',
   })
@@ -37,6 +45,7 @@ export class CreateUserDto {
   @IsString({ message: 'La contraseÃ±a debe ser una cadena de texto' })
   @MinLength(6, { message: 'La contraseÃ±a debe tener al menos 6 caracteres' })
   @IsNotEmpty({ message: 'La contraseÃ±a es obligatoria' })
+  @MaxBcryptPasswordBytes()
   password: string;
 
   @ApiProperty({ example: 'StrongPass123' })
@@ -48,5 +57,6 @@ export class CreateUserDto {
       'La confirmaciÃ³n de la contraseÃ±a debe tener al menos 6 caracteres',
   })
   @IsNotEmpty({ message: 'La confirmaciÃ³n de la contraseÃ±a es obligatoria' })
+  @MaxBcryptPasswordBytes()
   passwordConfirmation?: string;
 }

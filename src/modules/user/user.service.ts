@@ -13,6 +13,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { userMapperToResponseDto } from './user.mapper';
 import { User } from './user.entity';
 import { AccountRole } from './account-role.enum';
+import { assertBcryptPasswordLength } from '../../common/validation/password-byte-length.validator';
 
 function hasDatabaseErrorCode(error: unknown, expectedCode: string): boolean {
   if (typeof error !== 'object' || error === null) return false;
@@ -39,12 +40,18 @@ export class UserService {
     return userMapperToResponseDto(user);
   }
 
+  async getUserTokenVersion(id: string): Promise<number | null> {
+    const user = await this.userRepository.findById(id);
+    return user?.tokenVersion ?? null;
+  }
+
   async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    assertBcryptPasswordLength(createUserDto.password);
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     try {
       const newUser = await this.userRepository.create({
-        email: createUserDto.email,
-        fullName: createUserDto.fullName,
+        email: createUserDto.email.trim().toLowerCase(),
+        fullName: createUserDto.fullName.trim(),
         role: createUserDto.role ?? AccountRole.PRODUCER,
         password: hashedPassword,
       });
@@ -68,6 +75,7 @@ export class UserService {
     }
     try {
       if (userData.password) {
+        assertBcryptPasswordLength(userData.password);
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         userData.password = hashedPassword;
       }
@@ -107,23 +115,8 @@ export class UserService {
     return user;
   }
 
-  async saveVerificationCode(
-    id: string,
-    code: string,
-    expiration: Date,
-  ): Promise<void> {
-    return this.userRepository.saveVerificationCode(id, code, expiration);
-  }
-
-  async clearVerificationCode(id: string): Promise<void> {
-    return this.userRepository.clearVerificationCode(id);
-  }
-
-  async findByVerificationCode(code: string): Promise<User | null> {
-    return this.userRepository.findByVerificationCode(code);
-  }
-
   async changePassword(id: string, newPassword: string): Promise<void> {
+    assertBcryptPasswordLength(newPassword);
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     return this.userRepository.changePassword(id, hashedPassword);
   }

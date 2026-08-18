@@ -3,6 +3,7 @@ import { AddAccountRolesAndProfessionalAccess1787080000000 } from './17870800000
 import { AddProfessionalReviews1787080001000 } from './1787080001000-AddProfessionalReviews';
 import { AddBcsScoreProvenance1787080002000 } from './1787080002000-AddBcsScoreProvenance';
 import { InitialSchema1768842440975 } from './1768842440975-InitialSchema';
+import { AddPasswordResetChallenges1787080003000 } from './1787080003000-AddPasswordResetChallenges';
 
 function createQueryRunner(): {
   runner: QueryRunner;
@@ -72,5 +73,22 @@ describe('professional feature migrations', () => {
     expect(down.join('\n')).toContain(
       'DROP TYPE "body_condition_score_source_enum"',
     );
+  });
+
+  it('adds reversible password challenges and JWT revocation state', async () => {
+    const migration = new AddPasswordResetChallenges1787080003000();
+
+    const up = await runMigration(migration, 'up');
+    const down = await runMigration(migration, 'down');
+    const upSql = up.join('\n');
+    const downSql = down.join('\n');
+
+    expect(upSql).toContain('ADD "tokenVersion" integer NOT NULL DEFAULT 0');
+    expect(upSql).toContain('CREATE TABLE "password_reset_challenges"');
+    expect(upSql).toContain('"emailHash" character(64) NOT NULL');
+    expect(upSql).toContain('IDX_password_reset_challenges_email_created');
+    expect(upSql).toContain('DROP COLUMN "resetPasswordToken"');
+    expect(downSql).toContain('DROP TABLE "password_reset_challenges"');
+    expect(downSql).toContain('DROP COLUMN "tokenVersion"');
   });
 });

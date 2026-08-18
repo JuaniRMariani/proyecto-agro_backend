@@ -9,10 +9,13 @@ import { CowModule } from './modules/cow/cow.module';
 import { ImageModule } from './modules/image/image.module';
 import { ProfessionalAccessModule } from './modules/professional-access/professional-access.module';
 import { ProfessionalReviewModule } from './modules/professional-reviews/professional-review.module';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -38,6 +41,12 @@ import { ProfessionalReviewModule } from './modules/professional-reviews/profess
     ProfessionalReviewModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

@@ -7,55 +7,40 @@ import { UserResponseDto } from '../user/dto/user-response.dto';
 import { User } from '../user/user.entity';
 import { UserService } from '../user/user.service';
 import { AuthService } from './auth.service';
-import { EmailService } from './emailer/email.service';
 
-jest.mock('bcrypt', () => ({
-  hash: jest.fn(),
-  compare: jest.fn(),
-}));
+jest.mock('bcrypt', () => ({ compare: jest.fn() }));
 
 const comparePassword = bcrypt.compare as unknown as jest.MockedFunction<
   (plainText: string, hash: string) => Promise<boolean>
 >;
-
 type UserServiceMock = jest.Mocked<
   Pick<
     UserService,
-    | 'createUser'
-    | 'getUserByEmail'
-    | 'getUserByEmailWithPassword'
-    | 'saveVerificationCode'
-    | 'clearVerificationCode'
-    | 'findByVerificationCode'
-    | 'changePassword'
+    'createUser' | 'getUserByEmailWithPassword' | 'getUserTokenVersion'
   >
 >;
 type JwtServiceMock = jest.Mocked<Pick<JwtService, 'sign' | 'decode'>>;
-type EmailServiceMock = jest.Mocked<Pick<EmailService, 'sendVerificationCode'>>;
 
-function makeUser(partial: Partial<User> = {}): User {
+function makeUser(): User {
   return Object.assign(new User(), {
     id: '11111111-1111-4111-8111-111111111111',
     email: 't@example.com',
     password: 'hashed',
     fullName: 'Test',
     role: AccountRole.PRODUCER,
+    tokenVersion: 0,
     cows: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-    ...partial,
   });
 }
 
-function makeUserResponse(
-  partial: Partial<UserResponseDto> = {},
-): UserResponseDto {
+function makeUserResponse(): UserResponseDto {
   return new UserResponseDto({
     id: '11111111-1111-4111-8111-111111111111',
     email: 't@example.com',
     fullName: 'Test',
     role: AccountRole.PRODUCER,
-    ...partial,
   });
 }
 
@@ -63,150 +48,98 @@ describe('AuthService', () => {
   let service: AuthService;
   let userService: UserServiceMock;
   let jwtService: JwtServiceMock;
-  let emailService: EmailServiceMock;
 
   beforeEach(async () => {
     userService = {
       createUser: jest.fn(),
-      getUserByEmail: jest.fn(),
       getUserByEmailWithPassword: jest.fn(),
-      saveVerificationCode: jest.fn(),
-      clearVerificationCode: jest.fn(),
-      findByVerificationCode: jest.fn(),
-      changePassword: jest.fn(),
+      getUserTokenVersion: jest.fn(),
     };
     jwtService = { sign: jest.fn(), decode: jest.fn() };
-    emailService = { sendVerificationCode: jest.fn() };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UserService, useValue: userService },
         { provide: JwtService, useValue: jwtService },
-        { provide: EmailService, useValue: emailService },
       ],
     }).compile();
-
-    service = module.get<AuthService>(AuthService);
+    service = module.get(AuthService);
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('logs in and returns token', async () => {
+  it('normalizes email on login and returns a role-bearing token', async () => {
     userService.getUserByEmailWithPassword.mockResolvedValue(makeUser());
     comparePassword.mockResolvedValue(true);
     jwtService.sign.mockReturnValue('token');
 
     const result = await service.login({
-      email: 't@example.com',
+      email: ' T@EXAMPLE.COM ',
       password: 'plain',
     });
 
+    expect(userService.getUserByEmailWithPassword.mock.calls).toContainEqual([
+      't@example.com',
+    ]);
     expect(result.accessToken).toBe('token');
     expect(result.user.role).toBe(AccountRole.PRODUCER);
-    expect(jwtService.sign.mock.calls).toContainEqual([
-      {
-        email: 't@example.com',
-        role: AccountRole.PRODUCER,
-        sub: '11111111-1111-4111-8111-111111111111',
-      },
-    ]);
   });
 
-  it('throws when login credentials invalid', async () => {
+  it('does not reveal whether email or password was invalid', async () => {
     userService.getUserByEmailWithPassword.mockResolvedValue(null);
     await expect(
-      service.login({ email: 't@example.com', password: 'bad' }),
+      service.login({ email: 'missing@example.com', password: 'bad' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('registers user when passwords match', async () => {
-    userService.createUser.mockResolvedValue(
-      makeUserResponse({ role: AccountRole.VETERINARIAN }),
-    );
+  it('registers a user when passwords match', async () => {
+    userService.createUser.mockResolvedValue(makeUserResponse());
+    userService.getUserTokenVersion.mockResolvedValue(0);
     jwtService.sign.mockReturnValue('token');
 
     const result = await service.register({
       fullName: 'Test',
       email: 't@example.com',
-      password: 'pass',
-      passwordConfirmation: 'pass',
-      role: AccountRole.VETERINARIAN,
+      password: 'pass12',
+      passwordConfirmation: 'pass12',
     });
 
     expect(result.accessToken).toBe('token');
-    expect(result.user.role).toBe(AccountRole.VETERINARIAN);
     expect(userService.createUser.mock.calls).toHaveLength(1);
+    expect(jwtService.sign.mock.calls).toContainEqual([
+      {
+        email: 't@example.com',
+        role: AccountRole.PRODUCER,
+        sub: '11111111-1111-4111-8111-111111111111',
+        version: 0,
+      },
+    ]);
   });
 
-  it('throws when register passwords do not match', async () => {
+  it('rejects mismatched registration passwords', async () => {
     await expect(
       service.register({
         fullName: 'Test',
         email: 't@example.com',
-        password: 'pass',
-        passwordConfirmation: 'other',
+        password: 'pass12',
+        passwordConfirmation: 'other1',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('sends verification code', async () => {
-    userService.getUserByEmail.mockResolvedValue(makeUserResponse());
+  it('rejects registration passwords longer than 72 UTF-8 bytes', async () => {
+    const oversizedPassword = String.fromCodePoint(0x1f404).repeat(19);
 
-    await service.sendCode('t@example.com');
-
-    expect(emailService.sendVerificationCode.mock.calls).toHaveLength(1);
-    expect(userService.saveVerificationCode.mock.calls).toHaveLength(1);
-  });
-
-  it('throws when sending code to unknown user', async () => {
-    userService.getUserByEmail.mockResolvedValue(null);
     await expect(
-      service.sendCode('missing@example.com'),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('verifies code', async () => {
-    userService.findByVerificationCode.mockResolvedValue(makeUser());
-    await expect(service.verifyCode('123456')).resolves.toEqual({
-      valid: true,
-    });
-  });
-
-  it('throws when verify code is invalid', async () => {
-    userService.findByVerificationCode.mockResolvedValue(null);
-    await expect(service.verifyCode('bad')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-  });
-
-  it('resets password when code valid', async () => {
-    userService.findByVerificationCode.mockResolvedValue(makeUser());
-
-    await service.resetPassword('123456', 'newpass', 'newpass');
-
-    expect(userService.changePassword.mock.calls).toContainEqual([
-      '11111111-1111-4111-8111-111111111111',
-      'newpass',
-    ]);
-    expect(userService.clearVerificationCode.mock.calls).toContainEqual([
-      '11111111-1111-4111-8111-111111111111',
-    ]);
-  });
-
-  it('throws when reset password confirmation mismatches', async () => {
-    await expect(
-      service.resetPassword('code', 'newpass', 'other'),
+      service.register({
+        fullName: 'Test',
+        email: 't@example.com',
+        password: oversizedPassword,
+        passwordConfirmation: oversizedPassword,
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(userService.createUser.mock.calls).toHaveLength(0);
   });
 
-  it('throws when logout without token', async () => {
+  it('rejects logout without token', async () => {
     await expect(service.logout(undefined)).rejects.toThrow(
       'Token no proporcionado',
     );
